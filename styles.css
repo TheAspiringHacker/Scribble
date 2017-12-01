@@ -1,0 +1,93 @@
+html, body {
+    margin : 0;
+    height : 100%;
+}
+
+body {
+    display : flex;
+    flex-direction : column;
+    font-family : sans-serif;
+}
+
+header {
+    background-color : #20abff;
+    display : inline-flex;
+    width : 100%;
+    height : 50px;
+}
+
+#menu {
+    display : inline-flex;
+    width : 150px;
+    height : 100%;
+    margin : 0 50px;
+    padding : 0;
+}
+
+.menu-item {
+    color : white;
+    display : inline;
+    height : 100%;
+    padding : 0 20px;
+    line-height : 50px;
+}
+
+.menu-item:hover {
+    background-color : #3fbfff;
+}
+
+#run {
+    border : 2px solid white;
+    border-radius : 25px;
+    color : white;
+    height : 80%;
+    margin : 10%;
+    padding : 0 18px;
+    line-height : 40px;
+}
+
+#run:hover {
+    background-color : white;
+    color : #20abff;
+}
+
+#editor {
+    display : flex;
+    width : 100%;
+    height : 100%;
+}
+
+#sidebar {
+    background-color : #00a0dd;
+    width : 200px;
+    height : 100%;
+}
+
+#scripts {
+    background-color : #f0f0f0;
+    width : 100%;
+    height : 100%;
+    border : 0;
+    margin : 0;
+    padding : 0;
+    overflow : scroll;
+}
+
+#categories {
+    list-style-type : none;
+}
+
+.category {
+    color : white;
+    background-color : grey;
+    border-width : 0 0 0 5px;
+    border-color : red;
+    margin : 0;
+    padding : 5px;
+}
+
+#main-svg {
+    border : 0;
+    margin : 0;
+    padding : 0;
+}

@@ -1,0 +1,23 @@
+<!doctype html>
+<head>
+  <meta charset='utf-8'>
+  <title>Scribble Code Editor</title>
+  <link rel='stylesheet' href='styles.css'>
+</head>
+<body>
+  <header>
+    <ul id='menu'>
+      <li class='menu-item'>File</li>
+      <li class='menu-item'>Edit</li>
+    </ul>
+    <span id='run'>
+      <strong>Run!</strong>
+    </span>
+  </header>
+  <div id='editor'></div>
+  <script src='editor/b-exp.js'></script>
+  <script src='editor/spec.js'></script>
+  <script>
+    editor = new Bexp.Editor(document.getElementById('editor'), spec);
+  </script>
+</body>
