@@ -28,10 +28,10 @@ const Bexp = (function() {
 
             var list = document.createElement('ul');
             list.setAttribute('id', 'categories');
-            for(var i = 0; i < spec['ordered-categories'].length; ++i) {
+            for(var i = 0; i < spec.categories.length; ++i) {
                 var listDiv = document.createElement('div');
                 listDiv.textContent
-                    = spec.categories[spec['ordered-categories'][i]]['id'];
+                    = spec.categories[i].id;
                 listDiv.setAttribute('class', 'category');
                 var li = document.createElement('li');
                 li.appendChild(listDiv);
@@ -39,15 +39,27 @@ const Bexp = (function() {
             }
             this.palette.appendChild(list);
 
-	    this.scriptArea = document.createElement('div');
+            this.scriptArea = document.createElement('div');
             this.scriptArea.setAttribute('id', 'scripts');
             this.editor.appendChild(this.scriptArea);
             this.svg = document.createElement('svg');
             this.svg.setAttribute('id', 'main-svg');
-            this.svg.setAttribute('width', scriptArea.width);
-            this.svg.setAttribute('height', scriptArea.height);
+            this.svg.setAttribute('width', this.scriptArea.width);
+            this.svg.setAttribute('height', this.scriptArea.height);
             this.scriptArea.appendChild(this.svg);
             this.spec = spec;
+
+            this.createSVGFromSpec = function(op, x, y, children) {
+                g = document.createElement('g');
+                return g;
+            };
+
+            this.newBlock = function(op, x, y) {
+                return {
+                    'children' : [],
+                    'svg' : this.createSVGFromSpec(op, x, y, [])
+                };
+            };
         }
     };
 })();
