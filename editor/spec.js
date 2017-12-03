@@ -1,13 +1,16 @@
 var spec = {
     'categories' : [
         {
-            'id' : 'Expression'
+            'id' : 'Expression',
+            'blocks' : ['apply', 'if', 'let', 'letRec', 'match', 'tuple']
         },
         {
-            'id' : 'Pattern'
+            'id' : 'Pattern',
+            'blocks' : []
         },
         {
-            'id' : 'Type'
+            'id' : 'Type',
+            'blocks' : []
         }
     ],
     'blocks' : {
@@ -16,12 +19,12 @@ var spec = {
                 {
                     'type' : 'nonterminal',
                     'id' : 'fun',
-                    'category' : 'expr'
+                    'nonterminal' : 'expr'
                 },
                 {
                     'type' : 'nonterminal',
                     'id' : 'arg',
-                    'category' : 'expr'
+                    'nonterminal' : 'expr'
                 }
             ],
             'category' : 'expr'
@@ -32,22 +35,22 @@ var spec = {
                 {
                     'type' : 'nonterminal',
                     'id' : 'pred',
-                    'category' : 'expr'
+                    'nonterminal' : 'expr'
                 },
                 {'type' : 'token', 'text' : 'then'},
                 {
                     'type' : 'nonterminal',
                     'id' : 'cons',
-                    'category' : 'expr'
+                    'nonterminal' : 'expr'
                 },
                 {'type' : 'token', 'text' : 'else'},
                 {
                     'type' : 'nonterminal',
                     'id' : 'alt',
-                    'category' : 'expr'
+                    'nonterminal' : 'expr'
                 }
             ],
-            'category' : 'expr'
+            'nonterminal' : 'expr'
         },
         'let' : {
             'grammar' : [
@@ -56,23 +59,23 @@ var spec = {
                     {
                         'type' : 'nonterminal',
                         'id' : 'pattern',
-                        'category' : 'pattern'
+                        'nonterminal' : 'pattern'
                     },
                     {'type' : 'token', 'text' : '='},
                     {
                         'type' : 'nonterminal',
                         'id' : 'expr',
-                                'category' : 'expr'
+                        'nonterminal' : 'expr'
                     }
                 ]},
                 {'type' : 'token', 'text' : 'in'},
                 {
                     'type' : 'nonterminal',
                     'id' : 'body',
-                    'category' : 'expr'
+                    'nonterminal' : 'expr'
                 }
             ],
-            'category' : 'expr'
+            'nonterminal' : 'expr'
         },
         'letRec' : {
             'grammar' : [
@@ -81,23 +84,23 @@ var spec = {
                     {
                         'type' : 'nonterminal',
                         'id' : 'pattern',
-                        'category' : 'pattern'
+                        'nonterminal' : 'pattern'
                     },
                     {'type' : 'token', 'text' : '='},
                     {
                         'type' : 'nonterminal',
                         'id' : 'expr',
-                        'category' : 'expr'
+                        'nonterminal' : 'expr'
                     }
                 ]},
                 {'type' : 'token', 'text' : 'in'},
                 {
                     'type' : 'nonterminal',
                     'id' : 'body',
-                    'category' : 'expr'
+                    'nonterminal' : 'expr'
                 }
             ],
-            'category' : 'expr'
+            'nonterminal' : 'expr'
         },
        'match' : {
             'grammar' : [
@@ -105,24 +108,24 @@ var spec = {
                 {
                     'type' : 'nonterminal',
                     'id' : 'test',
-                    'category' : 'expr'
+                    'nonterminal' : 'expr'
                 },
                 {'type' : 'token', 'text' : 'with'},
                 {'type' : 'variadic', 'id' : 'cases', 'grammar' : [
                     {
                         'type' : 'nonterminal',
                         'id' : 'pattern',
-                        'category' : 'pattern'
+                        'nonterminal' : 'pattern'
                     },
                     {'type' : 'token', 'text' : '->'},
                     {
                         'type' : 'nonterminal',
                         'id' : 'cons',
-                        'category' : 'expr'
+                        'nonterminal' : 'expr'
                     }
                 ]}
             ],
-            'category' : 'expr'
+            'nonterminal' : 'expr'
         },
         'tuple' : {
             'grammar' : [
@@ -131,12 +134,12 @@ var spec = {
                     {
                         'type' : 'nonterminal',
                         'id' : 'expr',
-                        'category' : 'expr'
+                        'nonterminal' : 'expr'
                     }
                 ]},
                 {'type' : 'token', 'text' : ')'}
             ],
-            'category' : 'expr'
+            'nonterminal' : 'expr'
         }
     }
 };
