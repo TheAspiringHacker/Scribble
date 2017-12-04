@@ -52,14 +52,15 @@ const Bexp = (function(window, document) {
 
     Editor.prototype.newBlock = function(opcode, children) {
         var b = new Bexp.BlockExpr(this, opcode, children);
-        b.render();
         return b;
     };
 
     Editor.prototype.addScript = function(script, x, y) {
-        script.group.setAttributeNS(null, 'transform', 'translate(' + x + ', ' + y + ')');
+        script.group.setAttributeNS(null, 'transform',
+                                    'translate(' + x + ', ' + y + ')');
         this.scripts.add(script);
         this.svg.appendChild(script.group);
+        script.render();
     };
 
     Editor.prototype.removeScript = function(block) {
@@ -84,7 +85,7 @@ const Bexp = (function(window, document) {
                 switch(self.op.grammar[i].type) {
                 case 'token':
                     var text = document.createElementNS(Bexp.svgNS, 'text');
-                    text.contentText = self.op.grammar[i].text;
+                    text.textContent = self.op.grammar[i].text;
                     text.setAttributeNS(null, 'font-size', 12);
                     self.group.appendChild(text);
                     break;
@@ -92,7 +93,8 @@ const Bexp = (function(window, document) {
                     if(childIdx < self.children.length) {
                         self.group.appendChild(self.children[childIdx].group);
                     } else {
-                        var placeholder = document.createElementNS(Bexp.svgNS, 'rect');
+                        var placeholder
+                            = document.createElementNS(Bexp.svgNS, 'rect');
                         placeholder.setAttributeNS(null, 'width', 20);
                         placeholder.setAttributeNS(null, 'height',
                                                    editor.BLOCK_HEIGHT);
@@ -121,7 +123,7 @@ const Bexp = (function(window, document) {
         var childIdx = 0;
         this.group.setAttributeNS(null, 'width', this.editor.SPACING);
         var was_modified_past_here = false;
-        var width = 0;
+        var width = this.editor.SPACING;
         for(var i = 0; i < this.op.grammar.length; ++i) {
             var is_nonterminal
                 = (this.op.grammar[i].type == 'nonterminal');
@@ -129,8 +131,20 @@ const Bexp = (function(window, document) {
                 ++childIdx;
             }
             if(true) {
-                this.group.childNodes[i + 1].setAttributeNS(null, 'transform', 'translate(' + width + ')');
-                width += parseInt(this.group.childNodes[i + 1].getAttribute('width')) + this.editor.SPACING;
+                var foo = -1;
+                if(this.op.grammar[i].type == 'token') {
+                    foo = this.group.childNodes[i + 1].getComputedTextLength();
+                    this.group.childNodes[i + 1].setAttributeNS(
+                        null, 'transform', 'translate(' + width + ', ' + '17)'
+                    );
+                } else if(this.op.grammar[i].type == 'nonterminal') {
+                    this.group.childNodes[i + 1].setAttributeNS(
+                        null, 'transform', 'translate(' + width + ')'
+                    );
+                    foo = parseInt(this.group.childNodes[i + 1].getAttribute('width'));
+                } else if(this.op.grammar[i].type == 'variadic') {
+                }
+                width += foo + this.editor.SPACING;
             } else {
                 if(is_nonterminal) {
                     var foo = this.children[childIdx];
