@@ -56,10 +56,10 @@ const Bexp = (function(window, document) {
     };
 
     Editor.prototype.addScript = function(script, x, y) {
-        script.group.setAttributeNS(null, 'transform',
-                                    'translate(' + x + ', ' + y + ')');
+        script.graphics.setAttributeNS(null, 'transform',
+                                       'translate(' + x + ', ' + y + ')');
         this.scripts.add(script);
-        this.svg.appendChild(script.group);
+        this.svg.appendChild(script.graphics);
         script.render();
     };
 
@@ -67,16 +67,36 @@ const Bexp = (function(window, document) {
         return this.scripts.delete(block);
     };
 
+    Text = function(str) {
+        SVGSprite.Sprite.call(this, document.createElementNS(Bexp.svgNS, 'g'));
+        this.text = document.createElementNS(Bexp.svgNS, 'text');
+        this.text.textContent = str;
+        this.text.setAttributeNS(null, 'font-size', 12);
+        this.graphics.appendChild(this.text);
+    };
+    Text.prototype = Object.create(SVGSprite.Sprite.prototype);
+    Hole = function() {
+        SVGSprite.Sprite.call(this, document.createElementNS(Bexp.svgNS, 'g'));
+        this.rect = document.createElementNS(Bexp.svgNS, 'rect');
+	this.rect.setAttributeNS(null, 'width', 20);
+        this.rect.setAttributeNS(null, 'height', editor.BLOCK_HEIGHT);
+        this.graphics.setAttributeNS(null, 'width', 20);
+    };
+    Hole.prototype = Object.create(SVGSprite.Sprite.prototype);
+    Hole.prototype.render = function() {
+    };
+
     BlockExpr = function(editor, opcode, children) {
+        SVGSprite.Sprite.call(this, document.createElementNS(Bexp.svgNS, 'g'));
         this.editor = editor;
         this.opcode = opcode;
         this.op = editor.spec.blocks[opcode];
         this.children = children;
-        this.group = document.createElementNS(Bexp.svgNS, 'g');
         this.rect = document.createElementNS(Bexp.svgNS, 'rect');
         this.rect.setAttributeNS(null, 'height', editor.BLOCK_HEIGHT);
         this.rect.setAttributeNS(null, 'fill', '#0000ff');
-        this.group.append(this.rect);
+        this.graphics.append(this.rect);
+        this.clicked = false;
         this.dirty = true;
 
         (function(self) {
@@ -84,23 +104,15 @@ const Bexp = (function(window, document) {
             for(var i = 0; i < self.op.grammar.length; ++i) {
                 switch(self.op.grammar[i].type) {
                 case 'token':
-                    var text = document.createElementNS(Bexp.svgNS, 'text');
-                    text.textContent = self.op.grammar[i].text;
-                    text.setAttributeNS(null, 'font-size', 12);
-                    self.group.appendChild(text);
+                    self.appendChild(new Text(self.op.grammar[i].text));
                     break;
                 case 'nonterminal':
                     if(childIdx < self.children.length) {
-                        self.group.appendChild(self.children[childIdx].group);
+                        self.appendChild(self.children[childIdx]);
                     } else {
-                        var placeholder
-                            = document.createElementNS(Bexp.svgNS, 'rect');
-                        placeholder.setAttributeNS(null, 'width', 20);
-                        placeholder.setAttributeNS(null, 'height',
-                                                   editor.BLOCK_HEIGHT);
                         self.children.push(null);
-                        self.group.appendChild(placeholder);
-		    }
+                        self.appendChild(new Hole());
+                    }
                     ++childIdx;
                     break;
                 case 'variadic':
@@ -113,18 +125,19 @@ const Bexp = (function(window, document) {
 	})(this);
     };
 
-    BlockExpr.prototype.getWidth = function() {
-        return this.group.getAttribute('width');
-    };
+    // BlockExpr extends Sprite
+    BlockExpr.prototype = Object.create(SVGSprite.Sprite.prototype);
 
     BlockExpr.prototype.render = function() {
         if(!this.dirty) return;
         this.dirty = false;
         var childIdx = 0;
-        this.group.setAttributeNS(null, 'width', this.editor.SPACING);
+        this.graphics.setAttributeNS(null, 'width', this.editor.SPACING);
         var was_modified_past_here = false;
         var width = this.editor.SPACING;
+        var iter = this.childNodes.keys();
         for(var i = 0; i < this.op.grammar.length; ++i) {
+            var child = iter.next().value;
             var is_nonterminal
                 = (this.op.grammar[i].type == 'nonterminal');
             if(is_nonterminal) {
@@ -133,15 +146,15 @@ const Bexp = (function(window, document) {
             if(true) {
                 var foo = -1;
                 if(this.op.grammar[i].type == 'token') {
-                    foo = this.group.childNodes[i + 1].getComputedTextLength();
-                    this.group.childNodes[i + 1].setAttributeNS(
+                    foo = child.text.getComputedTextLength();
+                    child.graphics.setAttributeNS(
                         null, 'transform', 'translate(' + width + ', ' + '17)'
                     );
                 } else if(this.op.grammar[i].type == 'nonterminal') {
-                    this.group.childNodes[i + 1].setAttributeNS(
+                    child.graphics.setAttributeNS(
                         null, 'transform', 'translate(' + width + ')'
                     );
-                    foo = parseInt(this.group.childNodes[i + 1].getAttribute('width'));
+                    foo = parseInt(child.graphics.getAttribute('width'));
                 } else if(this.op.grammar[i].type == 'variadic') {
                 }
                 width += foo + this.editor.SPACING;
