@@ -41,11 +41,11 @@ const Bexp = (function(window, document) {
         this.scriptArea = document.createElement('div');
         this.scriptArea.setAttribute('id', 'scripts');
         this.editor.appendChild(this.scriptArea);
-        this.svg = document.createElementNS(Bexp.svgNS, 'svg');
-        this.scriptArea.appendChild(this.svg);
-        this.svg.setAttributeNS(null, 'id', 'main-svg');
-        this.svg.setAttributeNS(null, 'width', '100%');
-        this.svg.setAttributeNS(null, 'height', '100%');
+        this.graphics = document.createElementNS(Bexp.svgNS, 'svg');
+        this.scriptArea.appendChild(this.graphics);
+        this.graphics.setAttributeNS(null, 'id', 'main-svg');
+        this.graphics.setAttributeNS(null, 'width', '100%');
+        this.graphics.setAttributeNS(null, 'height', '100%');
         this.spec = spec;
         this.scripts = new Set();
     };
@@ -56,10 +56,10 @@ const Bexp = (function(window, document) {
     };
 
     Editor.prototype.addScript = function(script, x, y) {
-        script.graphics.setAttributeNS(null, 'transform',
-                                       'translate(' + x + ', ' + y + ')');
+        script.transform.translation.x = x;
+        script.transform.translation.y = y;
         this.scripts.add(script);
-        this.svg.appendChild(script.graphics);
+        this.graphics.appendChild(script.graphics);
         script.render();
     };
 
@@ -78,7 +78,7 @@ const Bexp = (function(window, document) {
     Hole = function() {
         SVGSprite.Sprite.call(this, document.createElementNS(Bexp.svgNS, 'g'));
         this.rect = document.createElementNS(Bexp.svgNS, 'rect');
-	this.rect.setAttributeNS(null, 'width', 20);
+        this.rect.setAttributeNS(null, 'width', 20);
         this.rect.setAttributeNS(null, 'height', editor.BLOCK_HEIGHT);
         this.graphics.setAttributeNS(null, 'width', 20);
     };
@@ -97,6 +97,8 @@ const Bexp = (function(window, document) {
         this.rect.setAttributeNS(null, 'fill', '#0000ff');
         this.graphics.append(this.rect);
         this.clicked = false;
+        this.dragStartPos = {x : 0, y : 0};
+        this.dragOffset = {x : 0, y : 0};
         this.dirty = true;
 
         (function(self) {
@@ -122,13 +124,27 @@ const Bexp = (function(window, document) {
                     console.err(self.op.grammar[i].type + ' not a case');
                 }
             }
-	})(this);
+        })(this);
+
+        var self = this;
+        this.graphics.addEventListener('dragstart', function(event) {
+            self.dragStartPos.x = event.clientX;
+            self.dragStartPos.y = event.clientY;
+            self.dragged = true;
+        });
+        this.graphics.addEventListener('drag', function(event) {
+            self.dragOffset.x = event.clientX - self.dragStartPos.x;
+            self.dragOffset.y = event.clientY - self.dragStartPos.y;
+        });
+        this.graphics.addEventListener('dragend', function(event) {
+            self.dragged = false;
+        });
     };
 
     // BlockExpr extends Sprite
     BlockExpr.prototype = Object.create(SVGSprite.Sprite.prototype);
 
-    BlockExpr.prototype.render = function() {
+    BlockExpr.prototype.updateSVG = function() {
         if(!this.dirty) return;
         this.dirty = false;
         var childIdx = 0;
@@ -147,13 +163,9 @@ const Bexp = (function(window, document) {
                 var foo = -1;
                 if(this.op.grammar[i].type == 'token') {
                     foo = child.text.getComputedTextLength();
-                    child.graphics.setAttributeNS(
-                        null, 'transform', 'translate(' + width + ', ' + '17)'
-                    );
+                    child.transform.translation = {x: width, y: 17};
                 } else if(this.op.grammar[i].type == 'nonterminal') {
-                    child.graphics.setAttributeNS(
-                        null, 'transform', 'translate(' + width + ')'
-                    );
+                    child.transform.x = width;
                     foo = parseInt(child.graphics.getAttribute('width'));
                 } else if(this.op.grammar[i].type == 'variadic') {
                 }
