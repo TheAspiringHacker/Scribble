@@ -1,4 +1,5 @@
 const SVGSprite = (function(window, document) {
+    const svgNS = 'http://www.w3.org/2000/svg';
     var translationToAttribute = function(translation) {
         return 'translate(' + translation.x + ', ' + translation.y + ')';
     };
@@ -21,6 +22,11 @@ const SVGSprite = (function(window, document) {
         if(transform !== undefined) {
             this.transform = transform;
         }
+        this.drag = {
+            start: {x: 0, y: 0},
+            offset: {x: 0, y: 0},
+            dragged: false
+        };
     };
     Sprite.prototype.appendChild = function(child) {
         this.graphics.appendChild(child.graphics);
@@ -45,5 +51,60 @@ const SVGSprite = (function(window, document) {
         );
         this.childNodes.forEach(x => x.render());
     };
-    return {Sprite : Sprite};
+    Sprite.prototype.handleEvent = function(event) {
+    };
+    Sprite.prototype.startDrag = function(x, y) {
+        this.drag.start = {
+            x: this.transform.translation.x,
+            y: this.transform.translation.y
+        };
+        this.drag.offset = { x: x, y: y };
+        this.drag.dragged = true;
+    };
+    Sprite.prototype.updateDrag = function(x, y) {
+        if(this.drag.dragged) {
+            this.transform.translation.x
+              = this.drag.start.x + x - this.drag.offset.x;
+            this.transform.translation.y
+              = this.drag.start.y + y - this.drag.offset.y;
+        }
+    };
+    Sprite.prototype.stopDrag = function() {
+        this.drag.dragged = false;
+    };
+    Stage = function() {
+        Sprite.call(this, document.createElementNS(svgNS, 'svg'));
+        this.mouse = {pos: {x: 0, y: 0}, down: false};
+        this.graphics.addEventListener('mousemove', this);
+        this.graphics.addEventListener('mousedown', this);
+        this.graphics.addEventListener('mouseup', this);
+    };
+    Stage.prototype = Object.create(Sprite.prototype);
+    Stage.prototype.handleEvent = function(event) {
+        switch(event.type) {
+        case 'mousemove':
+            this.mouse.x = event.clientX;
+            this.mouse.y = event.clientY;
+        case 'mousedown':
+            this.mouse.down = true;
+        case 'mouseup':
+            this.mouse.down = false;
+        }
+    };
+    Text = function(str) {
+        Sprite.call(this, document.createElementNS(svgNS, 'g'));
+        this.text = document.createElementNS(svgNS, 'text');
+        this.text.textContent = str;
+        this.text.setAttributeNS(null, 'font-size', 12);
+        this.graphics.appendChild(this.text);
+    };
+    Text.prototype = Object.create(Sprite.prototype);
+    Text.updateSVG = function() {
+    };
+    return {
+        svgNS: svgNS,
+        Sprite: Sprite,
+        Stage: Stage,
+        Text: Text
+    };
 })(window, document);

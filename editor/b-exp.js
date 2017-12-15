@@ -19,6 +19,7 @@
 
 const Bexp = (function(window, document) {
     Editor = function(editor, spec) {
+        SVGSprite.Stage.call(this);
         this.BLOCK_HEIGHT = 25;
         this.SPACING = 5;
         this.editor = editor;
@@ -41,7 +42,6 @@ const Bexp = (function(window, document) {
         this.scriptArea = document.createElement('div');
         this.scriptArea.setAttribute('id', 'scripts');
         this.editor.appendChild(this.scriptArea);
-        this.graphics = document.createElementNS(Bexp.svgNS, 'svg');
         this.scriptArea.appendChild(this.graphics);
         this.graphics.setAttributeNS(null, 'id', 'main-svg');
         this.graphics.setAttributeNS(null, 'width', '100%');
@@ -49,32 +49,20 @@ const Bexp = (function(window, document) {
         this.spec = spec;
         this.scripts = new Set();
     };
-
+    Editor.prototype = Object.create(SVGSprite.Stage.prototype);
     Editor.prototype.newBlock = function(opcode, children) {
         var b = new Bexp.BlockExpr(this, opcode, children);
         return b;
     };
-
     Editor.prototype.addScript = function(script, x, y) {
         script.transform.translation.x = x;
         script.transform.translation.y = y;
-        this.scripts.add(script);
-        this.graphics.appendChild(script.graphics);
+        this.appendChild(script);
         script.render();
     };
-
     Editor.prototype.removeScript = function(block) {
-        return this.scripts.delete(block);
+        return this.removeChild(block);
     };
-
-    Text = function(str) {
-        SVGSprite.Sprite.call(this, document.createElementNS(Bexp.svgNS, 'g'));
-        this.text = document.createElementNS(Bexp.svgNS, 'text');
-        this.text.textContent = str;
-        this.text.setAttributeNS(null, 'font-size', 12);
-        this.graphics.appendChild(this.text);
-    };
-    Text.prototype = Object.create(SVGSprite.Sprite.prototype);
     Hole = function() {
         SVGSprite.Sprite.call(this, document.createElementNS(Bexp.svgNS, 'g'));
         this.rect = document.createElementNS(Bexp.svgNS, 'rect');
@@ -97,8 +85,7 @@ const Bexp = (function(window, document) {
         this.rect.setAttributeNS(null, 'fill', '#0000ff');
         this.graphics.append(this.rect);
         this.clicked = false;
-        this.dragStartPos = {x : 0, y : 0};
-        this.dragOffset = {x : 0, y : 0};
+        this.mouseEscaped = false;
         this.dirty = true;
 
         (function(self) {
@@ -106,7 +93,9 @@ const Bexp = (function(window, document) {
             for(var i = 0; i < self.op.grammar.length; ++i) {
                 switch(self.op.grammar[i].type) {
                 case 'token':
-                    self.appendChild(new Text(self.op.grammar[i].text));
+                    self.appendChild(
+                        new SVGSprite.Text(self.op.grammar[i].text)
+                    );
                     break;
                 case 'nonterminal':
                     if(childIdx < self.children.length) {
@@ -126,24 +115,15 @@ const Bexp = (function(window, document) {
             }
         })(this);
 
-        var self = this;
-        this.graphics.addEventListener('dragstart', function(event) {
-            self.dragStartPos.x = event.clientX;
-            self.dragStartPos.y = event.clientY;
-            self.dragged = true;
-        });
-        this.graphics.addEventListener('drag', function(event) {
-            self.dragOffset.x = event.clientX - self.dragStartPos.x;
-            self.dragOffset.y = event.clientY - self.dragStartPos.y;
-        });
-        this.graphics.addEventListener('dragend', function(event) {
-            self.dragged = false;
-        });
+        this.graphics.addEventListener('mousedown', this);
+        this.graphics.addEventListener('mousemove', this);
+        this.graphics.addEventListener('mouseup', this);
+        this.graphics.addEventListener('mouseenter', this);
+        this.graphics.addEventListener('mouseleave', this);
     };
 
     // BlockExpr extends Sprite
     BlockExpr.prototype = Object.create(SVGSprite.Sprite.prototype);
-
     BlockExpr.prototype.updateSVG = function() {
         if(!this.dirty) return;
         this.dirty = false;
@@ -182,6 +162,29 @@ const Bexp = (function(window, document) {
         this.rect.setAttributeNS(null, 'width', width);
     };
 
+    BlockExpr.prototype.handleEvent = function(event) {
+        switch(event.type) {
+        case 'mousedown':
+            event.preventDefault();
+            this.startDrag(event.pageX, event.pageY);
+            break;
+        case 'mouseup':
+            event.preventDefault();
+            this.stopDrag();
+            this.render();
+            break;
+        case 'mousemove':
+            this.updateDrag(event.pageX, event.pageY);
+            this.render();
+            break;
+        case 'mouseenter':
+            this.mouseEscaped = false;
+            break;
+        case 'mouseleave':
+            this.mouseEscaped = true;
+            break;
+        }
+    };
     BlockExpr.prototype.emit = function() {
         return {
             opcode : this.opcode,
