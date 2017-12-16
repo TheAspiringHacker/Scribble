@@ -63,8 +63,11 @@ const Bexp = (function(window, document) {
     Editor.prototype.removeScript = function(block) {
         return this.removeChild(block);
     };
-    Hole = function() {
-        SVGSprite.Sprite.call(this, document.createElementNS(Bexp.svgNS, 'g'));
+    Editor.prototype.mouseEvent = function() {
+    };
+    Hole = function(stage) {
+        SVGSprite.Sprite.call(this, stage,
+                              document.createElementNS(Bexp.svgNS, 'g'));
         this.rect = document.createElementNS(Bexp.svgNS, 'rect');
         this.rect.setAttributeNS(null, 'width', 20);
         this.rect.setAttributeNS(null, 'height', editor.BLOCK_HEIGHT);
@@ -75,7 +78,8 @@ const Bexp = (function(window, document) {
     };
 
     BlockExpr = function(editor, opcode, children) {
-        SVGSprite.Sprite.call(this, document.createElementNS(Bexp.svgNS, 'g'));
+        SVGSprite.Sprite.call(this, editor.stage,
+                              document.createElementNS(Bexp.svgNS, 'g'));
         this.editor = editor;
         this.opcode = opcode;
         this.op = editor.spec.blocks[opcode];
@@ -94,7 +98,7 @@ const Bexp = (function(window, document) {
                 switch(self.op.grammar[i].type) {
                 case 'token':
                     self.appendChild(
-                        new SVGSprite.Text(self.op.grammar[i].text)
+                        new SVGSprite.Text(self.stage, self.op.grammar[i].text)
                     );
                     break;
                 case 'nonterminal':
@@ -102,7 +106,7 @@ const Bexp = (function(window, document) {
                         self.appendChild(self.children[childIdx]);
                     } else {
                         self.children.push(null);
-                        self.appendChild(new Hole());
+                        self.appendChild(new Hole(self.stage));
                     }
                     ++childIdx;
                     break;
@@ -116,10 +120,6 @@ const Bexp = (function(window, document) {
         })(this);
 
         this.graphics.addEventListener('mousedown', this);
-        this.graphics.addEventListener('mousemove', this);
-        this.graphics.addEventListener('mouseup', this);
-        this.graphics.addEventListener('mouseenter', this);
-        this.graphics.addEventListener('mouseleave', this);
     };
 
     // BlockExpr extends Sprite
@@ -165,24 +165,18 @@ const Bexp = (function(window, document) {
     BlockExpr.prototype.handleEvent = function(event) {
         switch(event.type) {
         case 'mousedown':
+            this.stage.dragged = this;
             event.preventDefault();
             this.startDrag(event.pageX, event.pageY);
             break;
-        case 'mouseup':
-            event.preventDefault();
-            this.stopDrag();
-            this.render();
-            break;
-        case 'mousemove':
-            this.updateDrag(event.pageX, event.pageY);
-            this.render();
-            break;
-        case 'mouseenter':
-            this.mouseEscaped = false;
-            break;
-        case 'mouseleave':
-            this.mouseEscaped = true;
-            break;
+        }
+    };
+    BlockExpr.prototype.mouseEvent = function(mouse) {
+        if(mouse.down) {
+	    this.updateDrag(mouse.x, mouse.y);
+	    this.render();
+        } else {
+	    this.stopDrag();
         }
     };
     BlockExpr.prototype.emit = function() {
