@@ -19,7 +19,6 @@
 
 const Bexp = (function(window, document) {
     Editor = function(editor, spec) {
-        SVGSprite.Stage.call(this);
         this.BLOCK_HEIGHT = 25;
         this.SPACING = 5;
         this.editor = editor;
@@ -42,14 +41,21 @@ const Bexp = (function(window, document) {
         this.scriptArea = document.createElement('div');
         this.scriptArea.setAttribute('id', 'scripts');
         this.editor.appendChild(this.scriptArea);
-        this.scriptArea.appendChild(this.graphics);
-        this.graphics.setAttributeNS(null, 'id', 'main-svg');
-        this.graphics.setAttributeNS(null, 'width', '100%');
-        this.graphics.setAttributeNS(null, 'height', '100%');
+        this.sprite
+            = new SVGSprite.Sprite(document.createElementNS(Bexp.svgNS, 'svg'));
+        this.scriptLayer
+            = new SVGSprite.Sprite(document.createElementNS(Bexp.svgNS, 'g'));
+        this.dragLayer
+            = new SVGSprite.Sprite(document.createElementNS(Bexp.svgNS, 'g'));
+        this.sprite.appendChild(this.scriptLayer);
+        this.sprite.appendChild(this.dragLayer);
+        this.scriptArea.appendChild(this.sprite.graphics);
+        this.sprite.graphics.setAttributeNS(null, 'id', 'main-svg');
+        this.sprite.graphics.setAttributeNS(null, 'width', '100%');
+        this.sprite.graphics.setAttributeNS(null, 'height', '100%');
         this.spec = spec;
         this.scripts = new Set();
     };
-    Editor.prototype = Object.create(SVGSprite.Stage.prototype);
     Editor.prototype.newBlock = function(opcode, children) {
         var b = new Bexp.BlockExpr(this, opcode, children);
         return b;
@@ -57,15 +63,13 @@ const Bexp = (function(window, document) {
     Editor.prototype.addScript = function(script, x, y) {
         script.transform.translation.x = x;
         script.transform.translation.y = y;
-        this.appendChild(script);
+        this.scriptLayer.appendChild(script);
         script.render();
     };
     Editor.prototype.removeScript = function(block) {
-        return this.removeChild(block);
+        return this.scriptLayer.removeChild(block);
     };
-    Editor.prototype.mouseEvent = function() {
-    };
-    Hole = function(stage) {
+    Hole = function() {
         SVGSprite.Sprite.call(this, document.createElementNS(Bexp.svgNS, 'g'));
         this.rect = document.createElementNS(Bexp.svgNS, 'rect');
         this.rect.setAttributeNS(null, 'rx', '10');
@@ -175,6 +179,8 @@ const Bexp = (function(window, document) {
             event.preventDefault();
             document.addEventListener('mousemove', this);
             document.addEventListener('mouseup', this);
+            this.editor.scriptLayer.removeChild(this);
+            this.editor.dragLayer.appendChild(this);
             this.startDrag(event.pageX, event.pageY);
             break;
         case 'mousemove':
@@ -184,6 +190,8 @@ const Bexp = (function(window, document) {
         case 'mouseup':
             document.removeEventListener('mousemove', this);
             document.removeEventListener('mouseup', this);
+	    this.editor.dragLayer.removeChild(this);
+            this.editor.scriptLayer.appendChild(this);
             this.stopDrag();
             break;
         }

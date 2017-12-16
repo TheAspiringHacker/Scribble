@@ -72,33 +72,6 @@ const SVGSprite = (function(window, document) {
     Sprite.prototype.stopDrag = function() {
         this.drag.dragged = false;
     };
-    Stage = function() {
-        Sprite.call(this, document.createElementNS(svgNS, 'svg'));
-        this.mouse = {pos: {x: 0, y: 0}, down: false};
-        for(type of ['mousemove', 'mousedown', 'mouseup', 'mouseleave']) {
-            document.addEventListener(type, this);
-        }
-    };
-    Stage.prototype = Object.create(Sprite.prototype);
-    Stage.prototype.mouseEvent = function(mouse) {
-        if(this.dragged !== null) {
-            this.dragged.mouseEvent(mouse);
-        }
-    };
-    Stage.prototype.handleEvent = function(event) {
-        switch(event.type) {
-        case 'mousemove':
-            this.mouse.x = event.pageX;
-            this.mouse.y = event.pageY;
-            break;
-        case 'mousedown':
-            this.mouse.down = true;
-            break;
-        case 'mouseup':
-            this.mouse.down = false;
-            break;
-        }
-    };
     Text = function(str) {
         Sprite.call(this, document.createElementNS(svgNS, 'g'));
         this.text = document.createElementNS(svgNS, 'text');
@@ -115,7 +88,6 @@ const SVGSprite = (function(window, document) {
     return {
         svgNS: svgNS,
         Sprite: Sprite,
-        Stage: Stage,
         Text: Text
     };
 })(window, document);
