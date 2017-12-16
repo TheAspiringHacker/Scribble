@@ -78,7 +78,6 @@ const SVGSprite = (function(window, document) {
         for(type of ['mousemove', 'mousedown', 'mouseup', 'mouseleave']) {
             document.addEventListener(type, this);
         }
-        this.dragged = null;
     };
     Stage.prototype = Object.create(Sprite.prototype);
     Stage.prototype.mouseEvent = function(mouse) {
@@ -108,6 +107,9 @@ const SVGSprite = (function(window, document) {
         this.graphics.appendChild(this.text);
     };
     Text.prototype = Object.create(Sprite.prototype);
+    Text.prototype.setFill = function(fill) {
+        this.text.setAttributeNS(null, 'fill', fill);
+    };
     Text.updateSVG = function() {
     };
     return {

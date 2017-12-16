@@ -68,12 +68,17 @@ const Bexp = (function(window, document) {
     Hole = function(stage) {
         SVGSprite.Sprite.call(this, document.createElementNS(Bexp.svgNS, 'g'));
         this.rect = document.createElementNS(Bexp.svgNS, 'rect');
-        this.rect.setAttributeNS(null, 'width', 20);
+        this.rect.setAttributeNS(null, 'rx', '10');
+        this.rect.setAttributeNS(null, 'ry', '10');
+        this.rect.setAttributeNS(null, 'fill', '#ccb71e');
+        this.rect.setAttributeNS(null, 'width', '25');
         this.rect.setAttributeNS(null, 'height', editor.BLOCK_HEIGHT);
-        this.graphics.setAttributeNS(null, 'width', 20);
+        this.graphics.setAttributeNS(null, 'width', '25');
+        this.graphics.setAttributeNS(null, 'height', editor.BLOCK_HEIGHT);
+        this.graphics.appendChild(this.rect);
     };
     Hole.prototype = Object.create(SVGSprite.Sprite.prototype);
-    Hole.prototype.render = function() {
+    Hole.prototype.updateSVG = function() {
     };
 
     BlockExpr = function(editor, opcode, children) {
@@ -83,8 +88,12 @@ const Bexp = (function(window, document) {
         this.op = editor.spec.blocks[opcode];
         this.children = children;
         this.rect = document.createElementNS(Bexp.svgNS, 'rect');
+        this.rect.setAttributeNS(null, 'rx', '10');
+        this.rect.setAttributeNS(null, 'ry', '10');
+        this.rect.setAttributeNS(null, 'stroke', '#ccb71e');
+        this.rect.setAttributeNS(null, 'stroke-width', '2');
         this.rect.setAttributeNS(null, 'height', editor.BLOCK_HEIGHT);
-        this.rect.setAttributeNS(null, 'fill', '#0000ff');
+        this.rect.setAttributeNS(null, 'fill', '#fcdf05');
         this.graphics.append(this.rect);
         this.clicked = false;
         this.mouseEscaped = false;
@@ -95,9 +104,9 @@ const Bexp = (function(window, document) {
             for(var i = 0; i < self.op.grammar.length; ++i) {
                 switch(self.op.grammar[i].type) {
                 case 'token':
-                    self.appendChild(
-                        new SVGSprite.Text(self.op.grammar[i].text)
-                    );
+                    var text = new SVGSprite.Text(self.op.grammar[i].text);
+                    text.setFill('#353535');
+                    self.appendChild(text);
                     break;
                 case 'nonterminal':
                     if(childIdx < self.children.length) {
@@ -143,8 +152,8 @@ const Bexp = (function(window, document) {
                     foo = child.text.getComputedTextLength();
                     child.transform.translation = {x: width, y: 17};
                 } else if(this.op.grammar[i].type == 'nonterminal') {
-                    child.transform.x = width;
                     foo = parseInt(child.graphics.getAttribute('width'));
+                    child.transform.translation.x = width;
                 } else if(this.op.grammar[i].type == 'variadic') {
                 }
                 width += foo + this.editor.SPACING;
@@ -177,14 +186,6 @@ const Bexp = (function(window, document) {
             document.removeEventListener('mouseup', this);
             this.stopDrag();
             break;
-        }
-    };
-    BlockExpr.prototype.mouseEvent = function(mouse) {
-        if(mouse.down) {
-            this.updateDrag(mouse.x, mouse.y);
-            this.render();
-        } else {
-            this.stopDrag();
         }
     };
     BlockExpr.prototype.emit = function() {
