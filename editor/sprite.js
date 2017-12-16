@@ -10,7 +10,7 @@ const SVGSprite = (function(window, document) {
     var scaleToAttribute = function(scale) {
         return 'scale(' + scale.x + ', ' + scale.y + ')';
     };
-    var Sprite = function(stage, svg, transform) {
+    var Sprite = function(svg, transform) {
         this.graphics = svg;
         this.childNodes = new Set();
         this.parentNode = null;
@@ -27,7 +27,6 @@ const SVGSprite = (function(window, document) {
             offset: {x: 0, y: 0},
             dragged: false
         };
-        this.stage = stage;
     };
     Sprite.prototype.appendChild = function(child) {
         this.graphics.appendChild(child.graphics);
@@ -54,7 +53,6 @@ const SVGSprite = (function(window, document) {
     };
     Sprite.prototype.handleEvent = function(event) {
     };
-    Sprite.prototype.mouseEvent = function(mouse) {};
     Sprite.prototype.startDrag = function(x, y) {
         this.drag.start = {
             x: this.transform.translation.x,
@@ -75,11 +73,10 @@ const SVGSprite = (function(window, document) {
         this.drag.dragged = false;
     };
     Stage = function() {
-        Sprite.call(this, this, document.createElementNS(svgNS, 'svg'));
+        Sprite.call(this, document.createElementNS(svgNS, 'svg'));
         this.mouse = {pos: {x: 0, y: 0}, down: false};
-        this.stage = this;
         for(type of ['mousemove', 'mousedown', 'mouseup', 'mouseleave']) {
-            this.graphics.addEventListener(type, this);
+            document.addEventListener(type, this);
         }
         this.dragged = null;
     };
@@ -94,23 +91,17 @@ const SVGSprite = (function(window, document) {
         case 'mousemove':
             this.mouse.x = event.pageX;
             this.mouse.y = event.pageY;
-            if(this.dragged !== null) {
-                this.dragged.mouseEvent(this.mouse);
-            }
             break;
         case 'mousedown':
             this.mouse.down = true;
-            this.mouseEvent(this.mouse);
             break;
         case 'mouseup':
-        case 'mouseleave':
             this.mouse.down = false;
-            this.mouseEvent(this.mouse);
             break;
         }
     };
-    Text = function(stage, str) {
-        Sprite.call(this, stage, document.createElementNS(svgNS, 'g'));
+    Text = function(str) {
+        Sprite.call(this, document.createElementNS(svgNS, 'g'));
         this.text = document.createElementNS(svgNS, 'text');
         this.text.textContent = str;
         this.text.setAttributeNS(null, 'font-size', 12);

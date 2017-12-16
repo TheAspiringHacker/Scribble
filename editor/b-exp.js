@@ -66,8 +66,7 @@ const Bexp = (function(window, document) {
     Editor.prototype.mouseEvent = function() {
     };
     Hole = function(stage) {
-        SVGSprite.Sprite.call(this, stage,
-                              document.createElementNS(Bexp.svgNS, 'g'));
+        SVGSprite.Sprite.call(this, document.createElementNS(Bexp.svgNS, 'g'));
         this.rect = document.createElementNS(Bexp.svgNS, 'rect');
         this.rect.setAttributeNS(null, 'width', 20);
         this.rect.setAttributeNS(null, 'height', editor.BLOCK_HEIGHT);
@@ -78,8 +77,7 @@ const Bexp = (function(window, document) {
     };
 
     BlockExpr = function(editor, opcode, children) {
-        SVGSprite.Sprite.call(this, editor.stage,
-                              document.createElementNS(Bexp.svgNS, 'g'));
+        SVGSprite.Sprite.call(this, document.createElementNS(Bexp.svgNS, 'g'));
         this.editor = editor;
         this.opcode = opcode;
         this.op = editor.spec.blocks[opcode];
@@ -98,7 +96,7 @@ const Bexp = (function(window, document) {
                 switch(self.op.grammar[i].type) {
                 case 'token':
                     self.appendChild(
-                        new SVGSprite.Text(self.stage, self.op.grammar[i].text)
+                        new SVGSprite.Text(self.op.grammar[i].text)
                     );
                     break;
                 case 'nonterminal':
@@ -106,7 +104,7 @@ const Bexp = (function(window, document) {
                         self.appendChild(self.children[childIdx]);
                     } else {
                         self.children.push(null);
-                        self.appendChild(new Hole(self.stage));
+                        self.appendChild(new Hole());
                     }
                     ++childIdx;
                     break;
@@ -165,18 +163,28 @@ const Bexp = (function(window, document) {
     BlockExpr.prototype.handleEvent = function(event) {
         switch(event.type) {
         case 'mousedown':
-            this.stage.dragged = this;
             event.preventDefault();
+            document.addEventListener('mousemove', this);
+            document.addEventListener('mouseup', this);
             this.startDrag(event.pageX, event.pageY);
+            break;
+        case 'mousemove':
+            this.updateDrag(event.pageX, event.pageY);
+            this.render();
+            break;
+        case 'mouseup':
+            document.removeEventListener('mousemove', this);
+            document.removeEventListener('mouseup', this);
+            this.stopDrag();
             break;
         }
     };
     BlockExpr.prototype.mouseEvent = function(mouse) {
         if(mouse.down) {
-	    this.updateDrag(mouse.x, mouse.y);
-	    this.render();
+            this.updateDrag(mouse.x, mouse.y);
+            this.render();
         } else {
-	    this.stopDrag();
+            this.stopDrag();
         }
     };
     BlockExpr.prototype.emit = function() {
