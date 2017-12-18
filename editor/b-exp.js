@@ -55,10 +55,10 @@ const Bexp = (function(window, document) {
         this.sprite.graphics.setAttributeNS(null, 'height', '100%');
         this.spec = spec;
         this.scripts = new Set();
+        this.dragged = null;
     };
     Editor.prototype.newBlock = function(opcode, children) {
-        var b = new Bexp.BlockExpr(this, opcode, children);
-        return b;
+        return new Bexp.BlockExpr(this, opcode, children);
     };
     Editor.prototype.addScript = function(script, x, y) {
         script.transform.translation.x = x;
@@ -69,7 +69,7 @@ const Bexp = (function(window, document) {
     Editor.prototype.removeScript = function(block) {
         return this.scriptLayer.removeChild(block);
     };
-    Hole = function() {
+    Hole = function(owner) {
         SVGSprite.Sprite.call(this, document.createElementNS(Bexp.svgNS, 'g'));
         this.rect = document.createElementNS(Bexp.svgNS, 'rect');
         this.rect.setAttributeNS(null, 'rx', '10');
@@ -80,17 +80,21 @@ const Bexp = (function(window, document) {
         this.graphics.setAttributeNS(null, 'width', '25');
         this.graphics.setAttributeNS(null, 'height', editor.BLOCK_HEIGHT);
         this.graphics.appendChild(this.rect);
+        this.owner = owner;
     };
     Hole.prototype = Object.create(SVGSprite.Sprite.prototype);
+    Hole.prototype.width = function() {
+        return parseInt(this.rect.getAttributeNS(null, 'width'));
+    }
     Hole.prototype.updateSVG = function() {
     };
 
-    BlockExpr = function(editor, opcode, children) {
+    BlockExpr = function(editor, opcode, args) {
         SVGSprite.Sprite.call(this, document.createElementNS(Bexp.svgNS, 'g'));
         this.editor = editor;
         this.opcode = opcode;
         this.op = editor.spec.blocks[opcode];
-        this.children = children;
+        this.args = args;
         this.rect = document.createElementNS(Bexp.svgNS, 'rect');
         this.rect.setAttributeNS(null, 'rx', '10');
         this.rect.setAttributeNS(null, 'ry', '10');
@@ -109,15 +113,15 @@ const Bexp = (function(window, document) {
                 switch(self.op.grammar[i].type) {
                 case 'token':
                     var text = new SVGSprite.Text(self.op.grammar[i].text);
-                    text.setFill('#353535');
+                    text.setFill('white');
                     self.appendChild(text);
                     break;
                 case 'nonterminal':
-                    if(childIdx < self.children.length) {
-                        self.appendChild(self.children[childIdx]);
+                    if(childIdx < self.args.length) {
+                        self.appendChild(self.args[childIdx]);
                     } else {
-                        self.children.push(null);
-                        self.appendChild(new Hole());
+                        self.args.push(null);
+                        self.appendChild(new Hole(self));
                     }
                     ++childIdx;
                     break;
@@ -129,38 +133,35 @@ const Bexp = (function(window, document) {
                 }
             }
         })(this);
-
         this.graphics.addEventListener('mousedown', this);
     };
 
     // BlockExpr extends Sprite
     BlockExpr.prototype = Object.create(SVGSprite.Sprite.prototype);
+    BlockExpr.prototype.width = function() {
+        return parseInt(this.rect.getAttributeNS(null, 'width'));
+    }
     BlockExpr.prototype.updateSVG = function() {
         if(!this.dirty) return;
-        this.dirty = false;
+        //this.dirty = false;
         var childIdx = 0;
-        this.graphics.setAttributeNS(null, 'width', this.editor.SPACING);
         var was_modified_past_here = false;
         var width = this.editor.SPACING;
-        var iter = this.childNodes.keys();
+        var iter = this.childNodes[Symbol.iterator]();
         for(var i = 0; i < this.op.grammar.length; ++i) {
             var child = iter.next().value;
-            var is_nonterminal
-                = (this.op.grammar[i].type == 'nonterminal');
+            var is_nonterminal = (this.op.grammar[i].type == 'nonterminal');
             if(is_nonterminal) {
                 ++childIdx;
             }
             if(true) {
-                var foo = -1;
                 if(this.op.grammar[i].type == 'token') {
-                    foo = child.text.getComputedTextLength();
                     child.transform.translation = {x: width, y: 17};
                 } else if(this.op.grammar[i].type == 'nonterminal') {
-                    foo = parseInt(child.graphics.getAttribute('width'));
                     child.transform.translation.x = width;
                 } else if(this.op.grammar[i].type == 'variadic') {
                 }
-                width += foo + this.editor.SPACING;
+                width += child.width() + this.editor.SPACING;
             } else {
                 if(is_nonterminal) {
                     var foo = this.children[childIdx];
@@ -177,11 +178,26 @@ const Bexp = (function(window, document) {
         switch(event.type) {
         case 'mousedown':
             event.preventDefault();
+            event.stopPropagation();
             document.addEventListener('mousemove', this);
             document.addEventListener('mouseup', this);
-            this.editor.scriptLayer.removeChild(this);
+            var layer = this.parentNode;
+            while(layer !== this.editor.scriptLayer) {
+                this.transform.translation.x += layer.transform.translation.x;
+                this.transform.translation.y += layer.transform.translation.y;
+                layer = layer.parentNode;
+            }
+            var hole = new Hole(this.parentNode);
+            if(this.parentNode !== this.editor.scriptLayer) {
+                this.parentNode.insertChild(hole, this);
+            }
+            var oldParent = this.parentNode;
+            this.parentNode.removeChild(this);
             this.editor.dragLayer.appendChild(this);
+            this.editor.dragged = this;
             this.startDrag(event.pageX, event.pageY);
+            this.render();
+            oldParent.render();
             break;
         case 'mousemove':
             this.updateDrag(event.pageX, event.pageY);
@@ -190,8 +206,9 @@ const Bexp = (function(window, document) {
         case 'mouseup':
             document.removeEventListener('mousemove', this);
             document.removeEventListener('mouseup', this);
-	    this.editor.dragLayer.removeChild(this);
+            this.editor.dragLayer.removeChild(this);
             this.editor.scriptLayer.appendChild(this);
+            this.editor.dragged = null;
             this.stopDrag();
             break;
         }
@@ -199,7 +216,7 @@ const Bexp = (function(window, document) {
     BlockExpr.prototype.emit = function() {
         return {
             opcode : this.opcode,
-            children : this.children.map(x => x == null ? null : x.emit())
+            args : this.args.map(x => x == null ? null : x.emit())
         };
     };
 

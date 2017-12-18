@@ -15,14 +15,15 @@
     </span>
   </header>
   <div id='editor'></div>
+  <script src='util/util.js'></script>
   <script src='editor/sprite.js'></script>
   <script src='editor/b-exp.js'></script>
   <script src='editor/spec.js'></script>
   <script>
     editor = new Bexp.Editor(document.getElementById('editor'), spec);
     block = editor.newBlock('if', []);
-    editor.addScript(block, 2, 2);
-    block2 = editor.newBlock('if', []);
+    //editor.addScript(block, 2, 2);
+    block2 = editor.newBlock('if', [block]);
     editor.addScript(block2, 50, 50);
   </script>
 </body>

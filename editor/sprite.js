@@ -12,8 +12,11 @@ const SVGSprite = (function(window, document) {
     };
     var Sprite = function(svg, transform) {
         this.graphics = svg;
-        this.childNodes = new Set();
+        this.childNodes = new Util.List();
+        this.linkedListNode = null;
         this.parentNode = null;
+        this.prev = null;
+        this.next = null;
         this.transform = {
             translation: {x: 0, y : 0},
             rotation: {radians: 0, position: {x: 0, y: 0}},
@@ -28,21 +31,40 @@ const SVGSprite = (function(window, document) {
             dragged: false
         };
     };
+    Sprite.prototype.x = function() {
+        return this.transform.translation.x;
+    };
+    Sprite.prototype.y = function() {
+        return this.transform.translation.y;
+    };
+    Sprite.prototype.width = function() {
+        return parseInt(this.graphics.getAttributeNS(null, 'width'));
+    };
+    Sprite.prototype.height = function() {
+        return parseInt(this.graphics.getAttributeNS(null, 'height'));
+    };
     Sprite.prototype.appendChild = function(child) {
         this.graphics.appendChild(child.graphics);
-        child.index = this.childNodes.length;
-        this.childNodes.add(child);
+        this.childNodes.push(child);
+        child.linkedListNode = this.childNodes.back;
         child.parentNode = this;
+    };
+    Sprite.prototype.insertChild = function(newChild, oldChild) {
+        this.graphics.insertBefore(newChild.graphics, oldChild.graphics);
+        const node = this.childNodes.insert(newChild, oldChild.linkedListNode);
+        newChild.linkedListNode = node;
     };
     Sprite.prototype.removeChild = function(child) {
         this.graphics.removeChild(child.graphics);
-        this.childNodes.delete(child);
+        this.childNodes.remove(child.linkedListNode);
+        child.linkedListNode = null;
         child.parentNode = null;
         return child;
     };
     Sprite.prototype.updateSVG = function() {
     };
     Sprite.prototype.render = function() {
+        this.childNodes.forEach(x => x.render());
         this.updateSVG();
         this.graphics.setAttributeNS(null, 'transform',
             translationToAttribute(this.transform.translation) + ' '
@@ -83,7 +105,10 @@ const SVGSprite = (function(window, document) {
     Text.prototype.setFill = function(fill) {
         this.text.setAttributeNS(null, 'fill', fill);
     };
-    Text.updateSVG = function() {
+    Text.prototype.width = function() {
+        return this.text.getComputedTextLength();
+    };
+    Text.prototype.updateSVG = function() {
     };
     return {
         svgNS: svgNS,
