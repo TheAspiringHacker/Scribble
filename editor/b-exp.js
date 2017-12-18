@@ -69,7 +69,7 @@ const Bexp = (function(window, document) {
     Editor.prototype.removeScript = function(block) {
         return this.scriptLayer.removeChild(block);
     };
-    Hole = function(owner) {
+    Hole = function(owner, index) {
         SVGSprite.Sprite.call(this, document.createElementNS(Bexp.svgNS, 'g'));
         this.rect = document.createElementNS(Bexp.svgNS, 'rect');
         this.rect.setAttributeNS(null, 'rx', '10');
@@ -81,6 +81,7 @@ const Bexp = (function(window, document) {
         this.graphics.setAttributeNS(null, 'height', editor.BLOCK_HEIGHT);
         this.graphics.appendChild(this.rect);
         this.owner = owner;
+        this.index = index;
     };
     Hole.prototype = Object.create(SVGSprite.Sprite.prototype);
     Hole.prototype.width = function() {
@@ -89,12 +90,13 @@ const Bexp = (function(window, document) {
     Hole.prototype.updateSVG = function() {
     };
 
-    BlockExpr = function(editor, opcode, args) {
+    BlockExpr = function(editor, opcode, args, index) {
         SVGSprite.Sprite.call(this, document.createElementNS(Bexp.svgNS, 'g'));
         this.editor = editor;
         this.opcode = opcode;
         this.op = editor.spec.blocks[opcode];
         this.args = args;
+        this.index = index || -1;
         this.rect = document.createElementNS(Bexp.svgNS, 'rect');
         this.rect.setAttributeNS(null, 'rx', '10');
         this.rect.setAttributeNS(null, 'ry', '10');
@@ -108,7 +110,7 @@ const Bexp = (function(window, document) {
         this.dirty = true;
 
         (function(self) {
-            var childIdx = 0;
+            var argIdx = 0;
             for(var i = 0; i < self.op.grammar.length; ++i) {
                 switch(self.op.grammar[i].type) {
                 case 'token':
@@ -117,13 +119,14 @@ const Bexp = (function(window, document) {
                     self.appendChild(text);
                     break;
                 case 'nonterminal':
-                    if(childIdx < self.args.length) {
-                        self.appendChild(self.args[childIdx]);
+                    if(argIdx < self.args.length) {
+                        self.args[argIdx].index = argIdx;
+                        self.appendChild(self.args[argIdx]);
                     } else {
                         self.args.push(null);
-                        self.appendChild(new Hole(self));
+                        self.appendChild(new Hole(self, argIdx));
                     }
-                    ++childIdx;
+                    ++argIdx;
                     break;
                 case 'variadic':
                     // NOT IMPLEMENTED
@@ -174,6 +177,12 @@ const Bexp = (function(window, document) {
         this.rect.setAttributeNS(null, 'width', width);
     };
 
+    BlockExpr.prototype.clearArg = function(block) {
+        this.args[block.index] = null;
+        this.insertChild(new Hole(this, block.index), block);
+        this.removeChild(block);
+    };
+
     BlockExpr.prototype.handleEvent = function(event) {
         switch(event.type) {
         case 'mousedown':
@@ -187,12 +196,12 @@ const Bexp = (function(window, document) {
                 this.transform.translation.y += layer.transform.translation.y;
                 layer = layer.parentNode;
             }
-            var hole = new Hole(this.parentNode);
-            if(this.parentNode !== this.editor.scriptLayer) {
-                this.parentNode.insertChild(hole, this);
-            }
             var oldParent = this.parentNode;
-            this.parentNode.removeChild(this);
+            if(this.parentNode === this.editor.scriptLayer) {
+                this.parentNode.removeChild(this);
+            } else {
+                this.parentNode.clearArg(this);
+            }
             this.editor.dragLayer.appendChild(this);
             this.editor.dragged = this;
             this.startDrag(event.pageX, event.pageY);
