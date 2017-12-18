@@ -3,7 +3,7 @@ var Util = (function(window, document) {
         return Math.abs(n - m) < range;
     };
     const distance = function(p1, p2) {
-        return Math.pow(Math.pow(p2.x - p1.x, 2) - Math.pow(p2.y - p1.y, 2), 2);
+        return Math.pow(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2), 2);
     };
     var List = function(iterable) {
         this.front = null;
