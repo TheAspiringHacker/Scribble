@@ -55,6 +55,7 @@ const Bexp = (function(window, document) {
         this.sprite.graphics.setAttributeNS(null, 'height', '100%');
         this.spec = spec;
         this.scripts = new Set();
+        this.holes = new Set();
         this.dragged = null;
     };
     Editor.prototype.newBlock = function(opcode, children) {
@@ -82,12 +83,25 @@ const Bexp = (function(window, document) {
         this.graphics.appendChild(this.rect);
         this.owner = owner;
         this.index = index;
+        this.owner.editor.holes.add(this);
     };
     Hole.prototype = Object.create(SVGSprite.Sprite.prototype);
     Hole.prototype.width = function() {
         return parseInt(this.rect.getAttributeNS(null, 'width'));
-    }
+    };
     Hole.prototype.updateSVG = function() {
+    };
+    Hole.prototype.replaceWith = function(block) {
+        this.owner[this.index] = block;
+        this.owner.insertChild(block, this);
+        this.owner.removeChild(this);
+        this.owner.editor.holes.delete(this);
+    };
+    Hole.prototype.highlight = function() {
+        this.rect.setAttributeNS(null, 'fill', 'white');
+    };
+    Hole.prototype.unhighlight = function() {
+        this.rect.setAttributeNS(null, 'fill', '#ccb71e');
     };
 
     BlockExpr = function(editor, opcode, args, index) {
@@ -105,8 +119,7 @@ const Bexp = (function(window, document) {
         this.rect.setAttributeNS(null, 'height', editor.BLOCK_HEIGHT);
         this.rect.setAttributeNS(null, 'fill', '#fcdf05');
         this.graphics.append(this.rect);
-        this.clicked = false;
-        this.mouseEscaped = false;
+        this.dropTarget = null;
         this.dirty = true;
 
         (function(self) {
@@ -162,6 +175,7 @@ const Bexp = (function(window, document) {
                     child.transform.translation = {x: width, y: 17};
                 } else if(this.op.grammar[i].type == 'nonterminal') {
                     child.transform.translation.x = width;
+                    child.transform.translation.y = 0;
                 } else if(this.op.grammar[i].type == 'variadic') {
                 }
                 width += child.width() + this.editor.SPACING;
@@ -191,6 +205,8 @@ const Bexp = (function(window, document) {
             document.addEventListener('mousemove', this);
             document.addEventListener('mouseup', this);
             var layer = this.parentNode;
+            // A sprite's coordinates are relative to its parent's.
+            // We need to make it relative to the scripting area.
             while(layer !== this.editor.scriptLayer) {
                 this.transform.translation.x += layer.transform.translation.x;
                 this.transform.translation.y += layer.transform.translation.y;
@@ -210,13 +226,64 @@ const Bexp = (function(window, document) {
             break;
         case 'mousemove':
             this.updateDrag(event.pageX, event.pageY);
+            var oldHole = this.dropTarget;
+            var shortestDist = 20;
+            this.dropTarget = null;
+            for(hole of this.editor.holes) {
+                if(hole.owner !== this) {
+                    var pos = {
+                        x: hole.transform.translation.x,
+                        y: hole.transform.translation.y
+                    };
+                    var node = hole.owner;
+                    // I should probably cache the global pos sometime; this is
+                    // O(n)!
+                    var doContinue = false;
+                    while(node !== this.editor.scriptLayer) {
+                        if(node === this.editor.dragLayer) {
+                            doContinue = true;
+                            break;;
+                        }
+                        pos.x += node.transform.translation.x;
+                        pos.y += node.transform.translation.y;
+                        node = node.parentNode;
+                    }
+                    if(doContinue) {
+                        break;
+                    }
+                    var dist = Util.distance(pos, this.transform.translation);
+                    if(dist < shortestDist) {
+                        shortestDist = dist;
+                        this.dropTarget = hole;
+                    }
+                }
+            }
+            if(oldHole !== this.dropTarget) {
+                if(oldHole !== null) {
+                    oldHole.unhighlight();
+                    oldHole.render();
+                }
+                if(this.dropTarget !== null) {
+                    this.dropTarget.highlight();
+                    this.dropTarget.render();
+                }
+            }
             this.render();
             break;
         case 'mouseup':
             document.removeEventListener('mousemove', this);
             document.removeEventListener('mouseup', this);
             this.editor.dragLayer.removeChild(this);
-            this.editor.scriptLayer.appendChild(this);
+            if(this.dropTarget === null) {
+                this.editor.scriptLayer.appendChild(this);
+            } else {
+                this.dropTarget.replaceWith(this);
+                if(this.parentNode !== this.dropTarget.owner) {
+                    console.log('Assertion failed!');
+                }
+                this.parentNode.render();
+                this.dropTarget = null;
+            }
             this.editor.dragged = null;
             this.stopDrag();
             break;

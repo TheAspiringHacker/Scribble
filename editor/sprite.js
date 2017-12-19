@@ -71,6 +71,7 @@ const SVGSprite = (function(window, document) {
     Sprite.prototype.insertChild = function(newChild, oldChild) {
         this.graphics.insertBefore(newChild.graphics, oldChild.graphics);
         const node = this.childNodes.insert(newChild, oldChild.linkedListNode);
+        newChild.parentNode = this;
         newChild.linkedListNode = node;
     };
     Sprite.prototype.removeChild = function(child) {
