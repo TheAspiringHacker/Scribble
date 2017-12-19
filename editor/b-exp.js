@@ -92,7 +92,7 @@ const Bexp = (function(window, document) {
     Hole.prototype.updateSVG = function() {
     };
     Hole.prototype.replaceWith = function(block) {
-        this.owner[this.index] = block;
+        this.owner.args[this.index] = block;
         this.owner.insertChild(block, this);
         this.owner.removeChild(this);
         this.owner.editor.holes.delete(this);

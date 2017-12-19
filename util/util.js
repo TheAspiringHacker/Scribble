@@ -76,10 +76,10 @@ var Util = (function(window, document) {
         for(x of this) {
             f(x);
         }
-    }
+    };
     return {
         roughlyEquals: roughlyEquals,
         distance: distance,
         List: List
-    }
+    };
 })(window, document);
