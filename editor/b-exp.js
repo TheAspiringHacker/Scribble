@@ -18,7 +18,7 @@
 ;'use strict';
 
 const Bexp = (function(window, document) {
-    Editor = function(editor, spec) {
+    var Editor = function(editor, spec) {
         this.BLOCK_HEIGHT = 25;
         this.SPACING = 5;
         this.editor = editor;
@@ -70,7 +70,8 @@ const Bexp = (function(window, document) {
     Editor.prototype.removeScript = function(block) {
         return this.scriptLayer.removeChild(block);
     };
-    Hole = function(owner, index) {
+
+    var Hole = function(owner, index) {
         SVGSprite.Sprite.call(this, document.createElementNS(Bexp.svgNS, 'g'));
         this.rect = document.createElementNS(Bexp.svgNS, 'rect');
         this.rect.setAttributeNS(null, 'rx', '10');
@@ -104,7 +105,7 @@ const Bexp = (function(window, document) {
         this.rect.setAttributeNS(null, 'fill', '#ccb71e');
     };
 
-    BlockExpr = function(editor, opcode, args, index) {
+    var BlockExpr = function(editor, opcode, args, index) {
         SVGSprite.Sprite.call(this, document.createElementNS(Bexp.svgNS, 'g'));
         this.editor = editor;
         this.opcode = opcode;

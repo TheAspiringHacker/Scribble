@@ -114,7 +114,8 @@ const SVGSprite = (function(window, document) {
     Sprite.prototype.stopDrag = function() {
         this.drag.dragged = false;
     };
-    Text = function(str) {
+
+    var Text = function(str) {
         Sprite.call(this, document.createElementNS(svgNS, 'g'));
         this.text = document.createElementNS(svgNS, 'text');
         this.text.textContent = str;
