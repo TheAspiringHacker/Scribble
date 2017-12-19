@@ -15,7 +15,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-;'use-strict';
+;'use strict';
 
 const SVGSprite = (function(window, document) {
     const svgNS = 'http://www.w3.org/2000/svg';
