@@ -250,7 +250,7 @@ const Bexp = (function(window, document) {
                         node = node.parentNode;
                     }
                     if(doContinue) {
-                        break;
+                        continue;
                     }
                     var dist = Util.distance(pos, this.transform.translation);
                     if(dist < shortestDist) {
