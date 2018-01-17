@@ -162,7 +162,7 @@ const Bexp = (function(window, document) {
         return parseInt(this.rect.getAttributeNS(null, 'width'));
     };
     BlockExpr.prototype.height = function() {
-        return this.newlines * this.editor.BLOCK_HEIGHT;
+        return (this.newlines + 1) * this.editor.BLOCK_HEIGHT;
     };
     BlockExpr.prototype.updateSVG = function() {
         var rowWidth = this.editor.SPACING;
@@ -212,8 +212,7 @@ const Bexp = (function(window, document) {
             largestWidth = rowWidth;
         }
         this.rect.setAttributeNS(null, 'width', largestWidth);
-        this.rect.setAttributeNS(null, 'height',
-                                 this.height() + this.editor.BLOCK_HEIGHT);
+        this.rect.setAttributeNS(null, 'height', this.height());
         if(this.width() != oldWidth || this.height() != oldHeight) {
             if(this.parentNode != this.editor) {
                 this.parentNode.render();
