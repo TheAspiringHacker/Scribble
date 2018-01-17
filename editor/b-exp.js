@@ -84,6 +84,9 @@ const Bexp = (function(window, document) {
         this.graphics.appendChild(this.rect);
         this.owner = owner;
         this.index = index;
+        this.cachedDragData = {
+            pos: {x: 0, y: 0}, isDragged: false
+        };
         this.owner.editor.holes.add(this);
     };
     Hole.prototype = Object.create(SVGSprite.Sprite.prototype);
@@ -250,6 +253,28 @@ const Bexp = (function(window, document) {
             this.startDrag(event.pageX, event.pageY);
             this.render();
             oldParent.render();
+
+            // Thanks NickyNouse on Scratch for the cache solution
+            // https://scratch.mit.edu/discuss/topic/283813/?page=2#post-2928778
+            for(hole of this.editor.holes) {
+                hole.cachedDragData = {
+                    pos: {
+                        x: hole.transform.translation.x,
+                        y: hole.transform.translation.y
+                    },
+                    isDragged: false
+                };
+                var node = hole.owner;
+                while(node !== this.editor.scriptLayer) {
+                    if(node === this) {
+                        hole.cachedDragData.isDragged = true;
+                        break;
+                    }
+                    hole.cachedDragData.pos.x += node.transform.translation.x;
+                    hole.cachedDragData.pos.y += node.transform.translation.y;
+                    node = node.parentNode;
+                }
+            }
             break;
         case 'mousemove':
             this.updateDrag(event.pageX, event.pageY);
@@ -257,28 +282,9 @@ const Bexp = (function(window, document) {
             var shortestDist = 20;
             this.dropTarget = null;
             for(hole of this.editor.holes) {
-                if(hole.owner !== this) {
-                    var pos = {
-                        x: hole.transform.translation.x,
-                        y: hole.transform.translation.y
-                    };
-                    var node = hole.owner;
-                    // I should probably cache the global pos sometime; this is
-                    // O(n)!
-                    var doContinue = false;
-                    while(node !== this.editor.scriptLayer) {
-                        if(node === this.editor.dragLayer) {
-                            doContinue = true;
-                            break;;
-                        }
-                        pos.x += node.transform.translation.x;
-                        pos.y += node.transform.translation.y;
-                        node = node.parentNode;
-                    }
-                    if(doContinue) {
-                        continue;
-                    }
-                    var dist = Util.distance(pos, this.transform.translation);
+                if(!hole.cachedDragData.isDragged) {
+                    var dist = Util.distance(hole.cachedDragData.pos,
+                                             this.transform.translation);
                     if(dist < shortestDist) {
                         shortestDist = dist;
                         this.dropTarget = hole;
