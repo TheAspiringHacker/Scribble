@@ -56,12 +56,14 @@ var spec = {
                     'id' : 'pred',
                     'nonterminal' : 'expr'
                 },
+                {'type' : 'newline'},
                 {'type' : 'token', 'text' : 'then'},
                 {
                     'type' : 'nonterminal',
                     'id' : 'cons',
                     'nonterminal' : 'expr'
                 },
+                {'type' : 'newline'},
                 {'type' : 'token', 'text' : 'else'},
                 {
                     'type' : 'nonterminal',

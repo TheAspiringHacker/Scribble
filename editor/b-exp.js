@@ -94,6 +94,7 @@ const Bexp = (function(window, document) {
     };
     Hole.prototype.replaceWith = function(block) {
         this.owner.args[this.index] = block;
+        block.index = this.index;
         this.owner.insertChild(block, this);
         this.owner.removeChild(this);
         this.owner.editor.holes.delete(this);
@@ -121,7 +122,7 @@ const Bexp = (function(window, document) {
         this.rect.setAttributeNS(null, 'fill', '#fcdf05');
         this.graphics.append(this.rect);
         this.dropTarget = null;
-        this.dirty = true;
+        this.newlines = 0;
 
         (function(self) {
             var argIdx = 0;
@@ -142,11 +143,10 @@ const Bexp = (function(window, document) {
                     }
                     ++argIdx;
                     break;
-                case 'variadic':
-                    // NOT IMPLEMENTED
+                case 'newline':
                     break;
                 default:
-                    console.err(self.op.grammar[i].type + ' not a case');
+                    console.error(self.op.grammar[i].type + ' not a case');
                 }
             }
         })(this);
@@ -158,22 +158,64 @@ const Bexp = (function(window, document) {
     BlockExpr.prototype.width = function() {
         return parseInt(this.rect.getAttributeNS(null, 'width'));
     };
+    BlockExpr.prototype.height = function() {
+        return this.newlines * this.editor.BLOCK_HEIGHT;
+    };
     BlockExpr.prototype.updateSVG = function() {
-        var was_modified_past_here = false;
-        var width = this.editor.SPACING;
+        var rowWidth = this.editor.SPACING;
+        var largestWidth = this.editor.SPACING;
+        var nonterminalIdx = 0;
+        var oldWidth = this.width();
+        var oldHeight = this.height();
+        this.newlines = 0;
         var iter = this.childNodes[Symbol.iterator]();
         for(var i = 0; i < this.op.grammar.length; ++i) {
-            var child = iter.next().value;
-            if(this.op.grammar[i].type == 'token') {
-                    child.transform.translation = {x: width, y: 17};
-            } else if(this.op.grammar[i].type == 'nonterminal') {
-                child.transform.translation.x = width;
-                child.transform.translation.y = 0;
-            } else if(this.op.grammar[i].type == 'variadic') {
+            // This if statement is put first and has a continue because
+            // newline items in the grammar don't correspond with any graphics
+            // widget / object / sprite, so next should not be called on iter!
+            // If you think that this design is dirty and that I should make a
+            // dummy newline object or something, please let me know in a PR!
+            if(this.op.grammar[i].type == 'newline') {
+                if(rowWidth > largestWidth) {
+                    largestWidth = rowWidth;
+                }
+                rowWidth = this.editor.SPACING;
+                ++this.newlines;
+                continue;
             }
-            width += child.width() + this.editor.SPACING;
+            var child = iter.next().value;
+            var offset = this.newlines * this.editor.BLOCK_HEIGHT;
+            if(this.op.grammar[i].type == 'token') {
+                child.transform.translation = {x: rowWidth, y: offset + 17};
+                rowWidth += child.width() + this.editor.SPACING;
+            } else if(this.op.grammar[i].type == 'nonterminal') {
+                child.transform.translation.x = rowWidth;
+                child.transform.translation.y = offset;
+                rowWidth += child.width() + this.editor.SPACING;
+                if(this.args[nonterminalIdx] == null) {
+                } else {
+                    if(this.args[nonterminalIdx].newlines > 0) {
+                        this.newlines += this.args[nonterminalIdx].newlines;
+                        if(rowWidth > largestWidth) {
+                            largestWidth = rowWidth;
+                        }
+                        rowWidth = child.width() + this.editor.SPACING;
+                    }
+                }
+                ++nonterminalIdx;
+            }
         }
-        this.rect.setAttributeNS(null, 'width', width);
+        if(rowWidth > largestWidth) {
+            largestWidth = rowWidth;
+        }
+        this.rect.setAttributeNS(null, 'width', largestWidth);
+        this.rect.setAttributeNS(null, 'height',
+                                 this.height() + this.editor.BLOCK_HEIGHT);
+        if(this.width() != oldWidth || this.height() != oldHeight) {
+            if(this.parentNode != this.editor) {
+                this.parentNode.render();
+            }
+        }
     };
 
     BlockExpr.prototype.clearArg = function(block) {
