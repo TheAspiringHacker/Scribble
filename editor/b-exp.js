@@ -157,37 +157,21 @@ const Bexp = (function(window, document) {
     BlockExpr.prototype = Object.create(SVGSprite.Sprite.prototype);
     BlockExpr.prototype.width = function() {
         return parseInt(this.rect.getAttributeNS(null, 'width'));
-    }
+    };
     BlockExpr.prototype.updateSVG = function() {
-        if(!this.dirty) return;
-        //this.dirty = false;
-        var childIdx = 0;
         var was_modified_past_here = false;
         var width = this.editor.SPACING;
         var iter = this.childNodes[Symbol.iterator]();
         for(var i = 0; i < this.op.grammar.length; ++i) {
             var child = iter.next().value;
-            var is_nonterminal = (this.op.grammar[i].type == 'nonterminal');
-            if(is_nonterminal) {
-                ++childIdx;
-            }
-            if(true) {
-                if(this.op.grammar[i].type == 'token') {
+            if(this.op.grammar[i].type == 'token') {
                     child.transform.translation = {x: width, y: 17};
-                } else if(this.op.grammar[i].type == 'nonterminal') {
-                    child.transform.translation.x = width;
-                    child.transform.translation.y = 0;
-                } else if(this.op.grammar[i].type == 'variadic') {
-                }
-                width += child.width() + this.editor.SPACING;
-            } else {
-                if(is_nonterminal) {
-                    var foo = this.children[childIdx];
-                    if(foo != null && foo.dirty) {
-                        was_modified_past_here = true;
-                    }
-                }
+            } else if(this.op.grammar[i].type == 'nonterminal') {
+                child.transform.translation.x = width;
+                child.transform.translation.y = 0;
+            } else if(this.op.grammar[i].type == 'variadic') {
             }
+            width += child.width() + this.editor.SPACING;
         }
         this.rect.setAttributeNS(null, 'width', width);
     };
