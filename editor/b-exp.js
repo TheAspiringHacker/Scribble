@@ -224,10 +224,6 @@ const Bexp = (function(window, document) {
                 } else {
                     if(this.args[nonterminalIdx].newlines > 0) {
                         this.newlines += this.args[nonterminalIdx].newlines;
-                        if(rowWidth > largestWidth) {
-                            largestWidth = rowWidth;
-                        }
-                        rowWidth = child.width() + this.editor.SPACING;
                     }
                 }
                 ++nonterminalIdx;
