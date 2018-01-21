@@ -18,13 +18,13 @@
 ;'use strict';
 
 const Bexp = (function(window, document) {
-    var Editor = function(editor, spec) {
+    var Editor = function(elem, spec) {
         this.BLOCK_HEIGHT = 25;
         this.SPACING = 5;
-        this.editor = editor;
-        this.palette = document.createElement('div');
-        this.palette.setAttribute('id', 'sidebar');
-        this.editor.appendChild(this.palette);
+        this.rootElement = elem;
+        this.sidebar = document.createElement('div');
+        this.sidebar.setAttribute('id', 'sidebar');
+        this.rootElement.appendChild(this.sidebar);
 
         var list = document.createElement('ul');
         list.setAttribute('id', 'categories');
@@ -36,23 +36,35 @@ const Bexp = (function(window, document) {
             li.appendChild(div);
             list.appendChild(li);
         }
-        this.palette.appendChild(list);
+        this.sidebar.appendChild(list);
 
         this.scriptArea = document.createElement('div');
         this.scriptArea.setAttribute('id', 'scripts');
-        this.editor.appendChild(this.scriptArea);
-        this.sprite
-            = new SVGSprite.Sprite(document.createElementNS(Bexp.svgNS, 'svg'));
-        this.scriptLayer
-            = new SVGSprite.Sprite(document.createElementNS(Bexp.svgNS, 'g'));
-        this.dragLayer
-            = new SVGSprite.Sprite(document.createElementNS(Bexp.svgNS, 'g'));
+        this.rootElement.appendChild(this.scriptArea);
+
+        /*
+         The palette, scriptLayer, and dragLayer are all CHILDREN of sprite!
+         dragLayer is ABOVE palette and scriptLayer
+         When transferring scripts between scriptLayer and dragLayer, the
+         position must be offset by the width of the palette!
+         */
+        this.sprite =
+            new SVGSprite.Sprite(document.createElementNS(Bexp.svgNS, 'svg'));
+        this.palette = new Bexp.Palette(this);
+        this.scriptLayer =
+            new SVGSprite.Sprite(document.createElementNS(Bexp.svgNS, 'svg'));
+        this.scriptLayer.graphics.setAttributeNS(null, 'overflow', 'scroll');
+        this.scriptLayer.transform.translation.x = this.palette.width();
+        this.dragLayer =
+            new SVGSprite.Sprite(document.createElementNS(Bexp.svgNS, 'g'));
         this.sprite.appendChild(this.scriptLayer);
+        this.sprite.appendChild(this.palette);
         this.sprite.appendChild(this.dragLayer);
-        this.scriptArea.appendChild(this.sprite.graphics);
         this.sprite.graphics.setAttributeNS(null, 'id', 'main-svg');
         this.sprite.graphics.setAttributeNS(null, 'width', '100%');
         this.sprite.graphics.setAttributeNS(null, 'height', '100%');
+
+        this.scriptArea.appendChild(this.sprite.graphics);
         this.spec = spec;
         this.scripts = new Set();
         this.holes = new Set();
@@ -70,6 +82,19 @@ const Bexp = (function(window, document) {
     Editor.prototype.removeScript = function(block) {
         return this.scriptLayer.removeChild(block);
     };
+
+    var Palette = function(owner) {
+        SVGSprite.Sprite.call(this,document.createElementNS(Bexp.svgNS, 'svg'));
+        this.rect = document.createElementNS(Bexp.svgNS, 'rect');
+        this.rect.setAttributeNS(null, 'fill', '#e0e0e0')
+        this.rect.setAttributeNS(null, 'width', '200');
+        this.rect.setAttributeNS(null, 'height', '1000');
+        this.graphics.setAttributeNS(null, 'overflow', 'scroll');
+        this.graphics.setAttributeNS(null, 'height', '2000');
+        this.graphics.setAttributeNS(null, 'width', '200');
+        this.graphics.appendChild(this.rect);
+    };
+    Palette.prototype = Object.create(SVGSprite.Sprite.prototype);
 
     var Hole = function(owner, index) {
         SVGSprite.Sprite.call(this, document.createElementNS(Bexp.svgNS, 'g'));
@@ -236,7 +261,7 @@ const Bexp = (function(window, document) {
             var layer = this.parentNode;
             // A sprite's coordinates are relative to its parent's.
             // We need to make it relative to the scripting area.
-            while(layer !== this.editor.scriptLayer) {
+            while(layer !== this.editor.sprite) {
                 this.transform.translation.x += layer.transform.translation.x;
                 this.transform.translation.y += layer.transform.translation.y;
                 layer = layer.parentNode;
@@ -264,7 +289,7 @@ const Bexp = (function(window, document) {
                     isDragged: false
                 };
                 var node = hole.owner;
-                while(node !== this.editor.scriptLayer) {
+                while(node !== this.editor.sprite) {
                     if(node === this) {
                         hole.cachedDragData.isDragged = true;
                         break;
@@ -307,7 +332,14 @@ const Bexp = (function(window, document) {
             document.removeEventListener('mouseup', this);
             this.editor.dragLayer.removeChild(this);
             if(this.dropTarget === null) {
-                this.editor.scriptLayer.appendChild(this);
+                this.transform.translation.x -=
+                    this.editor.scriptLayer.transform.translation.x;
+                if(this.transform.translation.x < 0) {
+                    this.editor.scripts.delete(this);
+                } else {
+                    this.editor.scriptLayer.appendChild(this);
+                    this.render();
+                }
             } else {
                 this.dropTarget.replaceWith(this);
                 if(this.parentNode !== this.dropTarget.owner) {
@@ -331,6 +363,7 @@ const Bexp = (function(window, document) {
     return {
         svgNS : 'http://www.w3.org/2000/svg',
         Editor : Editor,
-        BlockExpr : BlockExpr
+        BlockExpr : BlockExpr,
+        Palette: Palette
     };
 })(window, document);

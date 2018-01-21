@@ -76,20 +76,13 @@ var spec = {
         'let' : {
             'grammar' : [
                 {'type' : 'token', 'text' : 'let'},
-                {'type' : 'variadic', 'id' : 'bindings', 'grammar' : [
-                    {
-                        'type' : 'nonterminal',
-                        'id' : 'pattern',
-                        'nonterminal' : 'pattern'
-                    },
-                    {'type' : 'token', 'text' : '='},
-                    {
-                        'type' : 'nonterminal',
-                        'id' : 'expr',
-                        'nonterminal' : 'expr'
-                    }
-                ]},
+                {
+                    'type' : 'nonterminal',
+                    'id' : 'pattern',
+                    'nonterminal' : 'pattern'
+                },
                 {'type' : 'token', 'text' : 'in'},
+                {'type' : 'newline'},
                 {
                     'type' : 'nonterminal',
                     'id' : 'body',
@@ -101,20 +94,13 @@ var spec = {
         'letRec' : {
             'grammar' : [
                 {'type' : 'token', 'text' : 'let rec'},
-                {'type' : 'variadic', 'grammar' : [
-                    {
-                        'type' : 'nonterminal',
-                        'id' : 'pattern',
-                        'nonterminal' : 'pattern'
-                    },
-                    {'type' : 'token', 'text' : '='},
-                    {
-                        'type' : 'nonterminal',
-                        'id' : 'expr',
-                        'nonterminal' : 'expr'
-                    }
-                ]},
+                {
+                    'type' : 'nonterminal',
+                    'id' : 'pattern',
+                    'nonterminal' : 'pattern'
+                },
                 {'type' : 'token', 'text' : 'in'},
+                {'type' : 'newline'},
                 {
                     'type' : 'nonterminal',
                     'id' : 'body',
