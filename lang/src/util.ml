@@ -6,7 +6,7 @@ module type MONAD = sig
   val (>>) : 'a m -> 'b m -> 'b m
 end
 
-module Option : MONAD with type 'a m = 'a option = struct
+module Option : MONAD with type 'a m := 'a option = struct
   type 'a m = 'a option
   let bind m f =
     match m with
