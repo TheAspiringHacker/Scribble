@@ -56,7 +56,7 @@ let rec unify subst = function
       unify subst (t0, t1) >>= fun s0 -> unify s0 (u0, u1)
   | _, _ -> Err "Could not unify"
 
-and unifyList subst zipped =
+and unify_list subst zipped =
   List.fold_left
     (fun acc next -> acc >>= fun x -> unify x next)
     (Ok subst) zipped
