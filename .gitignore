@@ -1,1 +1,17 @@
 *~
+*#
+_build
+_tags
+Makefile
+configure
+*META
+myocamlbuild*
+setup*
+*.cmo
+*.cmt
+*.cmx
+*.native
+*.byte
+*.txt
+*.mllib
+*.mldylib
