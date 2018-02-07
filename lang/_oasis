@@ -1,0 +1,14 @@
+OASISFormat: 0.4
+Name:        Scribble
+Version:     0.1
+Synopsis:    Educational language
+Authors:     TheAspiringHacker
+License:     Expat
+Plugins:     META (0.4), DevFiles (0.4)
+
+
+Library "util"
+  Path: src
+  Modules: Util
+  BuildTools:
+    ocamlbuild
