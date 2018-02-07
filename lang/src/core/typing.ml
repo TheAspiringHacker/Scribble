@@ -19,7 +19,7 @@ type polytype = {
 }
 
 type env = {
-  map : monotype IdMap.t
+  map : polytype IdMap.t
 }
 
 module TVar = struct
@@ -44,12 +44,22 @@ type state = {
 let fresh_var ({gensym; _} as inf) =
   (Gen_sym gensym, {inf with gensym = gensym + 1})
 
-let rec unify = function
+let rec unify subst = function
   | t0, t1 when t0 = t1 -> Ok TVarMap.empty
-  | Var var, mono | mono, Var var -> Err "Todo"
-  | Fun(in0, out0), Fun(in1, out1) ->
-      unify(in0, in1) >>= fun s0 -> unify(out0, out1) >>= fun s1 -> Err "Todo"
+  | Var var, mono | mono, Var var ->
+      if true then
+        Err "Todo"
+      else
+        Err "Todo"
+  | Fun(t0, u0), Fun(t1, u1)
+  | Pair(t0, u0), Pair(t1, u1) ->
+      unify subst (t0, t1) >>= fun s0 -> unify s0 (u0, u1)
   | _, _ -> Err "Could not unify"
+
+and unifyList subst zipped =
+  List.fold_left
+    (fun acc next -> acc >>= fun x -> unify x next)
+    (Ok subst) zipped
 
 let generalize = ()
 let substitute = ()

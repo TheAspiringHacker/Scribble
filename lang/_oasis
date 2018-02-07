@@ -6,9 +6,14 @@ Authors:     TheAspiringHacker
 License:     Expat
 Plugins:     META (0.4), DevFiles (0.4)
 
+Library "core"
+  Path: src/core
+  Modules: Typing
+  BuildTools: ocamlbuild
+  BuildDepends:
+    util
 
 Library "util"
   Path: src
   Modules: Util
-  BuildTools:
-    ocamlbuild
+  BuildTools: ocamlbuild
