@@ -14,14 +14,6 @@ type monotype =
   | Unit
   | Var of tvar
 
-type polytype = {
-  monotype : monotype
-}
-
-type env = {
-  map : polytype IdMap.t
-}
-
 module TVar = struct
   type t = tvar
   let compare tvar1 tvar2 =
@@ -32,6 +24,16 @@ module TVar = struct
     | Gen_sym x, Gen_sym y -> compare x y
 end
 
+type polytype = {
+  tvars: Set.Make(TVar).t;
+  monotype : monotype
+}
+
+type env = {
+  map : polytype IdMap.t
+}
+
+module TVarSet = Set.Make(TVar)
 module TVarMap = Map.Make(TVar)
 
 type substitution = monotype Map.Make(TVar).t
@@ -44,16 +46,24 @@ type state = {
 let fresh_var ({gensym; _} as inf) =
   (Gen_sym gensym, {inf with gensym = gensym + 1})
 
+let rec gather_tvars = function
+  | Var x -> TVarSet.singleton x
+  | Unit -> TVarSet.empty
+  | Fun(t0, t1) | Pair(t0, t1) ->
+    TVarSet.union (gather_tvars t0) @@ gather_tvars t1
+
+let free_tvars {tvars; monotype} = TVarSet.diff (gather_tvars monotype) tvars
+
 let rec unify subst = function
-  | t0, t1 when t0 = t1 -> Ok TVarMap.empty
+  | t0, t1 when t0 = t1 -> Ok subst
   | Var var, mono | mono, Var var ->
-      if true then
-        Err "Todo"
+      if TVarSet.mem var @@ gather_tvars mono then
+        Err "Recursive type unification"
       else
-        Err "Todo"
+        Ok (TVarMap.add var mono subst)
   | Fun(t0, u0), Fun(t1, u1)
   | Pair(t0, u0), Pair(t1, u1) ->
-      unify subst (t0, t1) >>= fun s0 -> unify s0 (u0, u1)
+      unify subst (t0, t1) >>= fun subst' -> unify subst' (u0, u1)
   | _, _ -> Err "Could not unify"
 
 and unify_list subst zipped =
