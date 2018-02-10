@@ -1,3 +1,6 @@
+(* I am using http://dev.stephendiehl.com/fun/006_hindley_milner.html and
+   https://github.com/quchen/articles/tree/master/hindley-milner as guides *)
+
 open Util
 module TyResult = Result(struct type t = string end)
 open TyResult
@@ -8,11 +11,13 @@ end)
 
 type tvar = Id of string | Gen_sym of int
 
+(* A monotype is a regular type *)
 type monotype =
   | Fun of monotype * monotype
   | Pair of monotype * monotype
   | Unit
   | Var of tvar
+  | Int | Char
 
 module TVar = struct
   type t = tvar
@@ -24,11 +29,13 @@ module TVar = struct
     | Gen_sym x, Gen_sym y -> compare x y
 end
 
+(* A polytype, or type scheme, is a generic type (quantifies type variables ) *)
 type polytype = {
   tvars: Set.Make(TVar).t;
   monotype : monotype
 }
 
+(* An environment is a mapping of variables to polytypes *)
 type env = {
   map : polytype IdMap.t
 }
@@ -36,19 +43,24 @@ type env = {
 module TVarSet = Set.Make(TVar)
 module TVarMap = Map.Make(TVar)
 
+(* A substitution is a mapping of type variables to monotype *)
 type substitution = monotype Map.Make(TVar).t
 
 type state = {
   env : env;
+  subst : substitution;
   gensym : int
-}
 
+}
 let fresh_var ({gensym; _} as inf) =
-  ({inf with gensym = gensym + 1}, Gen_sym gensym)
+  (Gen_sym gensym, {inf with gensym = gensym + 1})
 
 module type SUBSTITUTABLE = sig
   type t
+  (* Replace all occurences of assigned free variables
+     with their assignments in the substitution *)
   val apply : substitution -> t -> t
+  (* Gather all the type variables that are not quantified by a polytype *)
   val free_tvars : t -> TVarSet.t
 end
 
@@ -65,9 +77,9 @@ module Monotype : SUBSTITUTABLE with type t := monotype = struct
     | x -> x
   let rec free_tvars = function
     | Var x -> TVarSet.singleton x
-    | Unit -> TVarSet.empty
     | Fun(t0, t1) | Pair(t0, t1) ->
       TVarSet.union (free_tvars t0) (free_tvars t1)
+    | _ -> TVarSet.empty
 end
 
 module Polytype : SUBSTITUTABLE with type t := polytype = struct
@@ -90,6 +102,7 @@ module Env : SUBSTITUTABLE with type t := env = struct
       map TVarSet.empty
 end
 
+(* Compute the substitution that would make the two types the same *)
 let rec unify subst = function
   | t0, t1 when t0 = t1 -> Ok subst
   | Var var, mono | mono, Var var ->
@@ -106,10 +119,32 @@ and unify_list subst zipped =
     (fun acc next -> acc >>= fun x -> unify x next)
     (Ok subst) zipped
 
-let generalize state ty =
-  let (state', tvar) = fresh_var state in (state', {
-    tvars = TVarSet.singleton tvar;
+(* Given a monotype and an environment, return a polytype quantifying all
+   variables not quantified in the environment *)
+(* Maybe we can optimize by using the "levels" / ownership concept used in the
+   OCaml type inferencer? *)
+let generalize env ty =
+  let free_tvars = Monotype.free_tvars ty in
+  let free_tvars' = TVarSet.diff free_tvars @@ Env.free_tvars env in
+  let quantified_vars = TVarSet.fold TVarSet.add TVarSet.empty free_tvars' in {
+    tvars = quantified_vars;
     monotype = ty
-  })
+  }
 
-let instantiate {tvars; monotype} = ()
+let instantiate {tvars; monotype} = () (* TODO *)
+
+(* TODO *)
+let rec infer state (node, ann) =
+  match node with
+  | Pretyped_tree.App(f, x) ->
+      (* Infer function type *)
+      infer state f >>= fun (fun_t, state') ->
+      (* Infer argument type *)
+      infer state' x >>= fun (arg_t, state'') ->
+      let tvar, state''' = fresh_var state'' in
+      (* Unify function's type with arg_type -> result_type *)
+      (unify state'''.subst (fun_t, Fun(arg_t, Var tvar))) >>=
+      fun subst''' ->
+        Ok ((Monotype.apply subst''' (Var tvar)),
+            {state''' with subst = subst'''})
+  | _ -> Err "Todo"
