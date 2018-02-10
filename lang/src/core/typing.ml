@@ -44,14 +44,14 @@ module TVarSet = Set.Make(TVar)
 module TVarMap = Map.Make(TVar)
 
 (* A substitution is a mapping of type variables to monotype *)
-type substitution = monotype Map.Make(TVar).t
+type substitution = monotype TVarMap.t
 
-type state = {
+type collection_state = {
   env : env;
-  subst : substitution;
-  gensym : int
-
+  gensym : int;
+  constraints : (monotype * monotype) list
 }
+
 let fresh_var ({gensym; _} as inf) =
   (Gen_sym gensym, {inf with gensym = gensym + 1})
 
@@ -111,7 +111,7 @@ let rec unify subst = function
         else Ok (TVarMap.add var mono subst)
   | Fun(t0, u0), Fun(t1, u1)
   | Pair(t0, u0), Pair(t1, u1) ->
-      unify subst (t0, t1) >>= fun subst' -> unify subst' (u0, u1)
+      unify subst (t0, t1) >>= fun subst -> unify subst (u0, u1)
   | _, _ -> Err "Could not unify"
 
 and unify_list subst zipped =
@@ -133,18 +133,16 @@ let generalize env ty =
 
 let instantiate {tvars; monotype} = () (* TODO *)
 
+(* Gather unification requirements *)
 (* TODO *)
-let rec infer state (node, ann) =
+let rec collect_constraints state (node, ann) =
   match node with
   | Pretyped_tree.App(f, x) ->
       (* Infer function type *)
-      infer state f >>= fun (fun_t, state') ->
+      let f_type, state = collect_constraints state f in
       (* Infer argument type *)
-      infer state' x >>= fun (arg_t, state'') ->
-      let tvar, state''' = fresh_var state'' in
-      (* Unify function's type with arg_type -> result_type *)
-      (unify state'''.subst (fun_t, Fun(arg_t, Var tvar))) >>=
-      fun subst''' ->
-        Ok ((Monotype.apply subst''' (Var tvar)),
-            {state''' with subst = subst'''})
-  | _ -> Err "Todo"
+      let arg_type, state = collect_constraints state x in
+      let tvar, state = fresh_var state in
+      (Var tvar, {state with constraints =
+        (f_type, Fun (arg_type, Var tvar))::state.constraints})
+  | _ -> (Unit, state)
