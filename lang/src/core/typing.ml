@@ -12,7 +12,7 @@ module IdMap = Map.Make(struct
 end)
 module IdSet = Set.Make(struct
   type t = string list
-  let compare = compare
+  let compare = Pervasives.compare
 end)
 
 type tvar = Id of string | Gen_sym of int
@@ -52,9 +52,12 @@ module TVarMap = Map.Make(TVar)
 (* A substitution is a mapping of type variables to monotype *)
 type substitution = monotype TVarMap.t
 
-type state = {
+type constrain = Unify of monotype * monotype
+
+type collection_state = {
   env : env;
   subst : substitution;
+  constraints : constrain list;
   gensym : int;
 }
 
@@ -127,7 +130,7 @@ and unify_list subst zipped =
 
 let poly_of_mono ty = {tvars = TVarSet.empty; monotype = ty}
 
-let infer_pattern state pattern =
+let walk_pattern state pattern =
   let rec helper acc state (node, ann) =
     match node with
     | Pretyped_tree.PVar id ->
@@ -163,32 +166,34 @@ let instantiate {tvars; monotype} = () (* TODO *)
 
 (* Gather unification requirements *)
 (* TODO *)
-let rec infer state (node, ann) =
+let rec collect_constraints state (node, ann) =
   match node with
   | Pretyped_tree.App(f, x) ->
       (* Infer function type *)
-      infer state f >>= fun (f_type, state) ->
+      collect_constraints state f >>= fun (f_type, state) ->
       (* Infer argument type *)
-      infer state x >>= fun (arg_type, state) ->
+      collect_constraints state x >>= fun (arg_type, state) ->
       let tvar, state = fresh_var state in
-      unify state.subst (f_type, Fun(arg_type, Var tvar)) >>= fun subst ->
-      Ok(Var tvar, { state with subst = subst })
+      let constr = Unify(f_type, Fun(arg_type, Var tvar)) in
+      Ok(Var tvar, { state with constraints = constr::state.constraints })
   | Pretyped_tree.Lambda(pattern, body) ->
-      infer_pattern state pattern >>= fun (param_type, state) ->
-      infer state body >>= fun (return_type, state) ->
+      walk_pattern state pattern >>= fun (param_type, state) ->
+      collect_constraints state body >>= fun (return_type, state) ->
       Ok(Fun(param_type, return_type), state)
   | Pretyped_tree.Let((Pretyped_tree.PVar id, p'ann), bound, body) ->
-      infer state bound >>= fun (bound_type, state) ->
+      collect_constraints state bound >>= fun (bound_type, state) ->
       let state = { state with
         env = {                 (* vv Let generalization vv *)
           map = IdMap.add [id] (generalize state.env bound_type) state.env.map
         }
-      } in infer state body
+      } in collect_constraints state body
   | Pretyped_tree.Let(pattern, bound, body) ->
       (* Monomorphism restriction occurs here (no let generalization) *)
-      infer_pattern state pattern >>= fun (pattern_type, state) ->
-      infer state bound >>= fun (bound_type, state) ->
-      unify state.subst (pattern_type, bound_type) >>= fun subst ->
-      infer {state with subst = subst} body >>= fun (body_type, state) ->
+      walk_pattern state pattern >>= fun (pattern_type, state) ->
+      collect_constraints state bound >>= fun (bound_type, state) ->
+      let constr = Unify(pattern_type, bound_type) in
+      collect_constraints { state with
+        constraints = constr::state.constraints
+      } body >>= fun (body_type, state) ->
       Ok(body_type, state)
   | _ -> Err "TODO"
