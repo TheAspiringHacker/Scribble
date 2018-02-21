@@ -10,12 +10,22 @@ Library "core"
   Path: src/core
   Modules:
     Pretyped_tree,
-    Typing
+    Types
   BuildTools: ocamlbuild
   BuildDepends:
     util
 
-Library "util"
-  Path: src
-  Modules: Util
+Library "typing"
+  Path: src/typing
+  Modules:
+    Infer
   BuildTools: ocamlbuild
+  BuildDepends:
+    core
+
+Library "util"
+  Path: src/util
+  Modules:
+    Util
+  BuildTools: ocamlbuild
+  BuildDepends:
