@@ -13,7 +13,13 @@ open Typeck_types
 open Typed_tree
 open Util
 
-module TypeResult = Result(struct type t = string end)
+type type_error =
+  | Already_defined of string
+  | Cannot_unify of monotype * monotype
+  | Recursive_unification of tvar * monotype
+  | Unbound_variable of string list
+
+module TypeResult = Result(struct type t = type_error end)
 open TypeResult
 
 module TVarSet = Set.Make(TVar)
@@ -105,13 +111,13 @@ let rec unify subst = function
   | (TVar tv0, TVar tv1) when tv0 = tv1 -> Ok subst
   | (TVar tv, t) | (t, TVar tv) ->
       if occurs tv t
-        then Err "Recursive unification"
+        then Err (Recursive_unification(tv, t))
         else Ok(TVarMap.add tv t subst)
   | (TApp(t0, t1), TApp(t2, t3)) ->
       unify subst (t0, t1) >>= fun subst ->
       unify subst (Monotype.apply subst t2, Monotype.apply subst t3)
   | (TCon c0, TCon c1) when c0 = c1 -> Ok subst
-  | _ -> Err "Could not unify"
+  | (t0, t1) -> Err (Cannot_unify(t0, t1))
 
 (** Unify a list of monotype pairs *)
 let solve m = function
@@ -133,7 +139,7 @@ let walk_pattern st pattern =
             Ok ((PVar(id, poly), tvar, ann), IdSet.add [id] acc, { st with
               env = {map = IdMap.add [id] poly st.env.map}
             })
-        | Some _ -> Err "already defined"
+        | Some _ -> Err (Already_defined id)
         end
     | Pretyped_tree.PPair(fst, snd) ->
         helper acc st fst >>= fun ((_, fst_type, _) as fst, acc, st) ->
@@ -194,4 +200,4 @@ let rec gen_constraints st (node, ann) =
      | Some scheme ->
         let ty, st = instantiate st scheme in
         Ok((EVar id, ty, ann), st)
-     | None -> Err "Unbound variable"
+     | None -> Err (Unbound_variable id)
