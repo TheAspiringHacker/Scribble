@@ -1,8 +1,9 @@
-type 'a qual_id = (string * 'a) list
+type 'a qual_id = string list
 
-type 'a literal = literal' * 'a
-
-and literal' = Int | Char
+and literal =
+  | Char of char
+  | Float of float
+  | Int of int
 
 type 'a expr = 'a expr' * 'a
 
@@ -10,7 +11,7 @@ and 'a expr' =
   | App of 'a expr * 'a expr
   | Lambda of 'a pattern * 'a expr
   | Let of 'a pattern * 'a expr * 'a expr
-  | Literal of 'a literal
+  | Literal of literal
   | Var of 'a qual_id
 
 and 'a pattern = 'a pattern' * 'a

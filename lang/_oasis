@@ -9,6 +9,7 @@ Plugins:     META (0.4), DevFiles (0.4)
 Library "core"
   Path: src/core
   Modules:
+    Ast,
     Pretyped_tree,
     Types
   BuildTools: ocamlbuild

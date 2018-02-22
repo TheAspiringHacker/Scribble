@@ -9,9 +9,13 @@ module TVarMap = Map.Make(TVar)
 
 (* A substitution is a mapping of type variables to monotypes *)
 type substitution = monotype TVarMap.t
+
+type constrain = Unify of monotype * monotype
+
 type state = {
   env : env;
   gensym : int list;
+  constraints : constrain list;
   current_level : int;
 }
 
@@ -50,11 +54,12 @@ let generalize level monotype =
        acc, QApp(q0, q1)
     | TCon constr -> (acc, QCon constr)
     | TVar tvar ->
+       (* The tvar's level must be greater than the current level *)
        if tvar.level > level then
          match TVarMap.find_opt tvar map with
          | Some idx -> (acc, QBound idx)
          | None ->
-            ((TVarMap.add tvar count map, (tvar.var_kind)::list, count + 1),
+            ((TVarMap.add tvar count map, tvar::list, count + 1),
              QBound count)
        else
          (acc, QFree tvar)
@@ -64,8 +69,9 @@ let generalize level monotype =
 (* Turns a polytype into a monotype, replacing the qvars with fresh tvars *)
 let instantiate st polytype =
   (* Generate an array of fresh type variables *)
-  let ls, st = Array.fold_left (fun (ls, st) kind ->
-                   let (tvar, st) = (fresh_var kind st) in (tvar::ls, st)
+  let ls, st = Array.fold_left (fun (ls, st) tvar ->
+                   let (tvar, st) = (fresh_var tvar.var_kind st) in
+                   (tvar::ls, st)
                  ) ([], st) polytype.tvars
   in let array = Array.of_list @@ List.rev ls in
      (* Helper function that replaces qvars with tvars from the array *)
@@ -93,6 +99,10 @@ let rec unify subst = function
   | (TCon c0, TCon c1) when c0 = c1 -> Ok subst
   | _ -> Err "Could not unify"
 
+let solve m = function
+  | [] -> m
+  | Unify(t0, t1)::xs -> m >>= fun subst -> unify subst (t0, t1)
+
 let walk_pattern st pattern =
   let rec helper acc st (node, ann) =
     match node with
@@ -101,16 +111,63 @@ let walk_pattern st pattern =
         | None ->
           let (tvar, st) = fresh_var KStar st in
           let tvar = TVar tvar in
-            Ok (tvar, IdSet.add [id] acc, { st with
-              env = {map = IdMap.add [id] (poly_of_mono tvar) st.env.map}
+          let poly = poly_of_mono tvar in
+            Ok ((Ast.PVar(id, poly), ann), tvar, IdSet.add [id] acc, { st with
+              env = {map = IdMap.add [id] poly st.env.map}
             })
         | Some _ -> Err "already defined"
         end
     | Pretyped_tree.PPair(fst, snd) ->
-        helper acc st fst >>= fun (fst_type, acc, st) ->
-        helper acc st snd >>= fun (snd_type, acc, st) ->
-        Ok (TApp(TApp(TCon TPair, fst_type), snd_type), acc, st)
-    | Pretyped_tree.PUnit -> Ok (TCon TUnit, acc, st)
+        helper acc st fst >>= fun (fst, fst_type, acc, st) ->
+        helper acc st snd >>= fun (snd, snd_type, acc, st) ->
+        let ty = TApp(TApp(TCon TPair, fst_type), snd_type) in
+        Ok ((Ast.PPair(fst, snd), ann), ty, acc, st)
+    | Pretyped_tree.PUnit -> Ok ((Ast.PUnit, ann), TCon TUnit, acc, st)
     | Pretyped_tree.PWildcard ->
-        let (tvar, st) = fresh_var KStar st in Ok (TVar tvar, acc, st)
-  in helper IdSet.empty st pattern >>= fun (ty, _, st) -> Ok (ty, st)
+        let (tvar, st) = fresh_var KStar st in
+        Ok ((Ast.PWild, ann), TVar tvar, acc, st)
+  in helper IdSet.empty st pattern >>= fun (pat, ty, _, st) -> Ok (pat, ty, st)
+
+let rec gen_constraints st (node, ann) =
+  match node with
+  | Pretyped_tree.App(f, x) ->
+     gen_constraints st f >>= fun (f_core, f_ty, st) ->
+     gen_constraints st x >>= fun (x_core, x_ty, st) ->
+     let tv, st = fresh_var KStar st in
+     let t = TApp(TApp(TCon TFun, x_ty), TVar tv) in
+     let st = { st with constraints = Unify(t, f_ty)::st.constraints } in
+     Ok ((Ast.EApp(f_core, x_core), ann), TVar tv, st)
+  | Pretyped_tree.Lambda(pat, body) ->
+     walk_pattern st pat >>= fun (pat, ty, st) ->
+     gen_constraints st body >>= fun(body_core, body_ty, st) ->
+     let ty = TApp(TApp(TCon TFun, ty), body_ty) in
+     Ok((Ast.ELam(pat, body_core), ann), ty, st)
+  | Pretyped_tree.Let((Pretyped_tree.PVar id, pann), bound, body) ->
+     let st = increase_level st in
+     gen_constraints st bound >>= fun (bound_core, bound_ty, st) ->
+     solve (Ok TVarMap.empty) st.constraints >>= fun subst ->
+     let ty = Monotype.apply subst bound_ty in
+     let st = decrease_level st in
+     let scheme = generalize st.current_level ty in
+     let st = { st with env = extend [id] scheme st.env } in
+     gen_constraints st body
+  | Pretyped_tree.Let(pat, bound, body) ->
+     walk_pattern st pat >>= fun (pat_core, pat_ty, st) ->
+     gen_constraints st bound >>= fun(bound_core, bound_ty, st) ->
+     let st = {st with constraints = Unify(pat_ty, bound_ty)::st.constraints} in
+     gen_constraints st body >>= fun(body_core, body_ty, st) ->
+     Ok((Ast.ELet(pat_core, bound_core, body_core), ann), body_ty, st)
+  | Pretyped_tree.Literal lit ->
+     begin match lit with
+     | Pretyped_tree.Int i -> Ok ((Ast.ELit (Ast.Int i), ann), TCon TInt, st)
+     | Pretyped_tree.Float f ->
+        Ok ((Ast.ELit (Ast.Float f), ann), TCon TFloat, st)
+     | Pretyped_tree.Char c ->
+        Ok ((Ast.ELit (Ast.Char c), ann), TCon TChar, st)
+     end
+  | Pretyped_tree.Var id ->
+     match IdMap.find_opt id st.env.map with
+     | Some scheme ->
+        let ty, st = instantiate st scheme in
+        Ok((Ast.EVar id, ann), ty, st)
+     | None -> Err "Unbound variable"

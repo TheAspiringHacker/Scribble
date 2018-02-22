@@ -9,7 +9,7 @@ module IdSet = Set.Make(struct
   let compare = Pervasives.compare
 end)
 
-type tycon = TFun | TPair | TUnit
+type tycon = TFun | TPair | TUnit | TChar | TFloat | TInt
 
 type kind = KStar | KFun
 
@@ -46,7 +46,7 @@ type 'a pred = string list * 'a
 
 (* A polytype, or type scheme, is a generic type (quantifies type variables ) *)
 type polytype = {
-  tvars : kind array;
+  tvars : tvar array;
   quantitype : quantitype
 }
 
@@ -54,6 +54,8 @@ type polytype = {
 type env = {
   map : polytype IdMap.t
 }
+
+let extend id scheme env = { map = IdMap.add id scheme env.map }
 
 let poly_of_mono mono =
   let rec helper = function
