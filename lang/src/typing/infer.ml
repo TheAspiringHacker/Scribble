@@ -52,6 +52,12 @@ module type SUBSTITUTABLE = sig
   val apply : substitution -> t -> t
 end
 
+let rec update_levels level = function
+  | (TVar tv) as t ->
+     if tv.level > level then TVar {tv with level = level} else t
+  | TApp(t0, t1) -> TApp(update_levels level t0, update_levels level t1)
+  | c -> c
+
 module Monotype : SUBSTITUTABLE with type t := monotype = struct
   type t = monotype
   let rec apply subst = function
@@ -59,7 +65,7 @@ module Monotype : SUBSTITUTABLE with type t := monotype = struct
     | (TCon _) as t -> t
     | (TVar t) as v ->
       match TVarMap.find_opt t subst with
-      | Some x -> x
+      | Some x -> apply subst (update_levels t.level x)
       | None -> v
 end
 
