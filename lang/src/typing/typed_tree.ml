@@ -1,8 +1,8 @@
-type 'a pat = 'a pat' * 'a
+type 'a pat = 'a pat' * Typeck_types.monotype * 'a
 and 'a pat' =
   | PPair of 'a pat * 'a pat
   | PUnit
-  | PVar of string
+  | PVar of string * Typeck_types.polytype
   | PWild
 
 type literal =
@@ -10,7 +10,7 @@ type literal =
   | Float of float
   | Int of int
 
-type 'a expr = 'a expr' * 'a
+type 'a expr = 'a expr' * Typeck_types.monotype * 'a
 
 and 'a expr' =
   | EApp of 'a expr * 'a expr

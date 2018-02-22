@@ -10,8 +10,7 @@ Library "core"
   Path: src/core
   Modules:
     Ast,
-    Pretyped_tree,
-    Types
+    Pretyped_tree
   BuildTools: ocamlbuild
   BuildDepends:
     util
@@ -20,6 +19,9 @@ Library "typing"
   Path: src/typing
   Modules:
     Infer
+  InternalModules:
+    Typeck_types,
+    Typed_tree
   BuildTools: ocamlbuild
   BuildDepends:
     core
