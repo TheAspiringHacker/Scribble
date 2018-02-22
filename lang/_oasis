@@ -30,3 +30,17 @@ Library "util"
     Util
   BuildTools: ocamlbuild
   BuildDepends:
+
+Executable "test_typing"
+  Path: test/unit
+  MainIs: test_typing.ml
+  Build$: flag(tests)
+  BuildTools: ocamlbuild
+  BuildDepends:
+    typing
+
+Test "test_typing"
+  Run$: flag(tests)
+  TestTools: test_typing
+  Command: $test_typing
+  WorkingDirectory: test/unit

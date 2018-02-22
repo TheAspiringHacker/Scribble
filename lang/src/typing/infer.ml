@@ -14,6 +14,7 @@ type constrain = Unify of monotype * monotype
 
 type state = {
   env : env;
+  subst : substitution;
   gensym : int list;
   constraints : constrain list;
   current_level : int;
@@ -145,12 +146,15 @@ let rec gen_constraints st (node, ann) =
   | Pretyped_tree.Let((Pretyped_tree.PVar id, pann), bound, body) ->
      let st = increase_level st in
      gen_constraints st bound >>= fun (bound_core, bound_ty, st) ->
-     solve (Ok TVarMap.empty) st.constraints >>= fun subst ->
-     let ty = Monotype.apply subst bound_ty in
+     solve (Ok st.subst) st.constraints >>= fun subst ->
+     let st = {st with subst = subst} in
+     let ty = Monotype.apply st.subst bound_ty in
      let st = decrease_level st in
      let scheme = generalize st.current_level ty in
      let st = { st with env = extend [id] scheme st.env } in
-     gen_constraints st body
+     gen_constraints st body >>= fun (body_core, ty, st) ->
+     let pat_core = (Ast.PVar(id, scheme), pann) in
+     Ok((Ast.ELet(pat_core, bound_core, body_core), ann), ty, st)
   | Pretyped_tree.Let(pat, bound, body) ->
      walk_pattern st pat >>= fun (pat_core, pat_ty, st) ->
      gen_constraints st bound >>= fun(bound_core, bound_ty, st) ->
