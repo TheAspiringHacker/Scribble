@@ -14,7 +14,7 @@ module Option : MONAD with type 'a m := 'a option = struct
     | None -> None
   let return x = Some x
   let (>>=) = bind
-  let (>>) m0 m1 = m1
+  let (>>) m0 m1 = m0 >>= fun _ -> m1
 end
 
 type ('a, 'b) result = Err of 'a | Ok of 'b
@@ -29,5 +29,5 @@ end) : MONAD with type 'a m := (X.t, 'a) result = struct
     | Err err -> Err err
   let return x = Ok x
   let (>>=) = bind
-  let (>>) m0 m1 = m1
+  let (>>) m0 m1 = m0 >>= fun _ -> m1
 end
