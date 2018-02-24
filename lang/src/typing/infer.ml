@@ -63,9 +63,7 @@ let rec occurs st id level = function
           (* Set level if necessary; I'm not sure if this is right so
              I will look for bugs here *)
           begin if id's_level < id1's_level then
-                  Hashtbl.replace st.tvars id1 id's_level
-                else
-                  Hashtbl.replace st.tvars id id1's_level
+            Hashtbl.replace st.tvars id1 id's_level
           end;
           false
      | Link ty -> occurs st id level ty
@@ -79,28 +77,12 @@ let raise_if_occurs st id level ty = begin
   end
 
 let rec unify st = function
-  | (TVar id0, TVar id1) ->
-     begin match (Hashtbl.find st.tvars id0, Hashtbl.find st.tvars id1) with
-     | (Unbound(kind0, level0), Unbound(kind1, level1)) when kind0 = kind1 ->
-        (* Lower level reigns supreme; I'm not sure if this is right so I'll
-           look for bugs here *)
-        if level0 < level1 then
-          Hashtbl.replace st.tvars id1 (Unbound(kind0, level0))
-        else
-          Hashtbl.replace st.tvars id0 (Unbound(kind0, level1))
-     | (Unbound(kind0, _), Unbound(kind1, _)) ->
-        raise (Type_exn (Kind_mismatch(id0, kind0, id1, kind1)))
-     | (Unbound(kind, level), Link ty) ->
-        raise_if_occurs st id0 level ty
-     | (Link ty, Unbound(kind, level)) ->
-        raise_if_occurs st id1 level ty
-     | (Link t0, Link t1) ->
-        unify st (t0, t1)
-     end
+  | (TVar id0, TVar id1) when id0 = id1 -> ()
   | (TVar id, ty) | (ty, TVar id) ->
      begin match Hashtbl.find st.tvars id with
      | Unbound(_, level) ->
-        raise_if_occurs st id level ty
+        raise_if_occurs st id level ty;
+        Hashtbl.replace st.tvars id (Link ty)
      | Link ty1 -> unify st (ty, ty1)
      end
   | (TApp(t0, t1), TApp(t2, t3)) ->
