@@ -17,4 +17,4 @@ and 'a expr' =
   | ELam of 'a pat * 'a expr
   | ELet of 'a pat * 'a expr * 'a expr
   | ELit of literal
-  | EVar of string list
+  | EVar of Ident.t

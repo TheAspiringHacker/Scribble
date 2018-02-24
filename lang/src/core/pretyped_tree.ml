@@ -1,6 +1,6 @@
-type 'a qual_id = string list
 
-and literal =
+
+type literal =
   | Char of char
   | Float of float
   | Int of int
@@ -12,7 +12,7 @@ and 'a expr' =
   | Lambda of 'a pattern * 'a expr
   | Let of 'a pattern * 'a expr * 'a expr
   | Literal of literal
-  | Var of 'a qual_id
+  | Var of Ident.t
 
 and 'a pattern = 'a pattern' * 'a
 

@@ -10,6 +10,7 @@ Library "core"
   Path: src/core
   Modules:
     Ast,
+    Ident,
     Pretyped_tree
   BuildTools: ocamlbuild
   BuildDepends:

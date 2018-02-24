@@ -1,65 +1,61 @@
-
-module IdMap = Map.Make(struct
-  type t = string list
-  let compare = Pervasives.compare
-end)
-
-module IdSet = Set.Make(struct
-  type t = string list
-  let compare = Pervasives.compare
-end)
+module IdMap = Map.Make(Ident)
 
 type tycon = TFun | TPair | TUnit | TChar | TFloat | TInt
 
 type kind = KStar | KFun
 
-type tvar = {
-  level : int;
-  id : int;
-  var_kind : kind;
-}
-
-module TVar = struct
-  type t = tvar
-  let compare tvar1 tvar2 =
-    if tvar1.level < tvar2.level then -1
-    else if tvar1.level > tvar2.level then 1
-    else if tvar1.id < tvar2.id then -1
-    else if tvar1.id > tvar2.id then 1
-    else 0
-end
-
-(* A monotype is a regular type *)
+(** A monotype is a regular type *)
 type monotype =
   | TApp of monotype * monotype
   | TCon of tycon
-  | TVar of tvar
+  | TVar of int
 
-(* A quantitype is the body of a type scheme *)
+(** A quantitype is the body of a type scheme *)
 type quantitype =
   | QApp of quantitype * quantitype
   | QBound of int
-  | QFree of tvar
+  | QFree of int
   | QCon of tycon
 
 type 'a pred = string list * 'a
 
 (* A polytype, or type scheme, is a generic type (quantifies type variables ) *)
 type polytype = {
-  tvars : tvar array;
-  quantitype : quantitype
-}
+    qvars : kind array;
+    quantitype : quantitype
+  }
 
-(* An environment is a mapping of variables to polytypes *)
+(** An environment is a mapping of variables to polytypes *)
 type env = {
-  map : polytype IdMap.t
-}
+    map : polytype IdMap.t;
+    parent : env option
+  }
 
-let extend id scheme env = { map = IdMap.add id scheme env.map }
+type type_error =
+  | Already_defined of Ident.t
+  | Cannot_unify of monotype * monotype
+  | Recursive_unification of int * monotype
+  | Unbound_variable of Ident.t
+  | Kind_mismatch of int * kind * int * kind
+
+exception Type_exn of type_error
+
+let rec lookup id env =
+  match IdMap.find_opt id env.map with
+  | Some x -> Some x
+  | None ->
+     match env.parent with
+     | Some x -> lookup id x
+     | None -> None
+
+let add id scheme env =
+  match IdMap.find_opt id env.map with
+  | None -> Some { env with map = IdMap.add id scheme env.map }
+  | _ -> None
 
 let poly_of_mono mono =
   let rec helper = function
     | TApp(t0, t1) -> QApp(helper t0, helper t1)
     | TCon c -> QCon c
     | TVar tv -> QFree tv
-  in {tvars = [||]; quantitype = helper mono}
+  in {qvars = [||]; quantitype = helper mono}
