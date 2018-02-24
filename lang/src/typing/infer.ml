@@ -15,26 +15,32 @@ open Util
 module TypeResult = Result(struct type t = type_error end)
 open TypeResult
 
-(* A substitution is a mapping of type variables to monotypes *)
-type substitution = (int, monotype) Hashtbl.t
-
 type constrain = Unify of monotype * monotype
 
-type tvar = Unbound of kind * int | Link of monotype
+type tvar =
+    (** An unbound type variable *)
+  | Unbound of kind * int
+    (** A type variable that has been unified *)
+  | Link of monotype
 
 type state = {
+    (** The typing context *)
     mutable env : env;
+    (** Counter used to generate type variable ids *)
     mutable gensym : int;
+    (** List of type pairs to unify *)
     mutable constraints : constrain list;
+    (** A map of integer ids to type variables *)
     tvars : (int, tvar) Hashtbl.t;
+    (** Used to give type variables lifetimes *)
     mutable current_level : int;
   }
 
 let fresh_var st kind = begin
-  let id = st.gensym in
-  Hashtbl.add st.tvars st.gensym (Unbound(kind, st.current_level));
-  st.gensym <- st.gensym + 1;
-  id
+    let id = st.gensym in
+    Hashtbl.add st.tvars st.gensym (Unbound(kind, st.current_level));
+    st.gensym <- st.gensym + 1;
+    id
   end
 
 let enter_level st = begin
@@ -54,25 +60,30 @@ let rec occurs st id level = function
         else
           let id's_level = Hashtbl.find st.tvars id in
           let id1's_level = Hashtbl.find st.tvars id1 in
-          if id's_level < id1's_level then begin
-            Hashtbl.replace st.tvars id1 id's_level; false
-          end else
-            false
+          (* Set level if necessary; I'm not sure if this is right so
+             I will look for bugs here *)
+          begin if id's_level < id1's_level then
+                  Hashtbl.replace st.tvars id1 id's_level
+                else
+                  Hashtbl.replace st.tvars id id1's_level
+          end;
+          false
      | Link ty -> occurs st id level ty
      end
   | TApp(constr, arg) -> (occurs st id level constr) && (occurs st id level arg)
   | _ -> false
 
-let raise_if_occurs st id level ty =
-  if occurs st id level ty then
-    raise (Type_exn(Recursive_unification(id, ty)))
-  else
-    ()
+let raise_if_occurs st id level ty = begin
+    if occurs st id level ty then
+      raise (Type_exn(Recursive_unification(id, ty)))
+  end
 
 let rec unify st = function
   | (TVar id0, TVar id1) ->
      begin match (Hashtbl.find st.tvars id0, Hashtbl.find st.tvars id1) with
      | (Unbound(kind0, level0), Unbound(kind1, level1)) when kind0 = kind1 ->
+        (* Lower level reigns supreme; I'm not sure if this is right so I'll
+           look for bugs here *)
         if level0 < level1 then
           Hashtbl.replace st.tvars id1 (Unbound(kind0, level0))
         else
@@ -188,8 +199,8 @@ let rec gen_constraints st (node, ann) =
      (* Let generalization occurs in this branch *)
      enter_level st;
      let (_, bound_ty, _) as bound = gen_constraints st bound in
-     solve st;
      leave_level st;
+     solve st;
      let scheme = generalize st bound_ty in
      begin match add (Local id) scheme st.env with
      | Some env ->
