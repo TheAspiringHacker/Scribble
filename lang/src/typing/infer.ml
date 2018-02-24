@@ -106,7 +106,7 @@ let generalize st monotype =
        | Unbound(kind, level) ->
           (* The tvar's level must be greater than the current level *)
           if level > st.current_level then
-            (* Did we alredy quantify this? *)
+            (* Did we already quantify this? *)
             match IntMap.find_opt tvar map with
             (* Yes *) | Some x -> (acc, QBound x)
             (* No  *) | None ->
@@ -132,7 +132,6 @@ let instantiate st polytype =
        | QFree tvar -> TVar tvar
        | QCon constr -> TCon constr
      in helper polytype.quantitype
-
 
 (** Unify a list of monotype pairs *)
 let solve st =
@@ -175,32 +174,29 @@ let rec gen_constraints st (node, ann) =
        st.constraints <- Unify(t, f_ty)::st.constraints;
        Ok(EApp(f, x), tv, ann)
     | Pretyped_tree.Lambda(pat, body) ->
+       let env = st.env in
+       st.env <- extend env;
        walk_pattern st pat >>= fun ((_, pat_ty, _) as pat) ->
        gen_constraints st body >>= fun ((_, body_ty, _) as body) ->
+       st.env <- env;
        let ty = TApp(TApp(TCon TFun, pat_ty), body_ty) in
        Ok(ELam(pat, body), ty, ann)
-    | Pretyped_tree.Let((Pretyped_tree.PVar id, pann), bound, body) ->
-       (* Let generalization occurs in this branch *)
-       enter_level st;
-       gen_constraints st bound >>= fun ((_, bound_ty, _) as bound) ->
-       leave_level st;
-       solve st;
-       let scheme = generalize st bound_ty in
-       begin match add (Local id) scheme st.env with
-       | Some env ->
-          st.env <- env;
-          gen_constraints st body >>= fun ((_, ty, _) as body) ->
-          let pat = (PVar(id, scheme), ty, pann) in
-          Ok(ELet(pat, bound, body), ty, ann)
-       | None -> Err(Already_defined (Local id))
-       end
-    | Pretyped_tree.Let(pat, bound, body) ->
-       (* Monomorphism restriction occurs in this branch *)
-       walk_pattern st pat >>= fun ((_, pat_ty, _) as pat) ->
-       gen_constraints st bound >>= fun ((_, bound_ty, _) as bound) ->
-       st.constraints <- Unify(pat_ty, bound_ty)::st.constraints;
+    | Pretyped_tree.Let(bindings, body) ->
+       let env = st.env in
+       st.env <- extend env;
+       let binding_opts = List.map (constrain_binding st) bindings in
+       let bindings_opt =
+         List.fold_left
+           (* Maybe I can use applicatives here? *)
+           (fun acc next ->
+             acc >>= fun list ->
+             next >>= fun binding ->
+             Ok (binding::list))
+           (Ok []) binding_opts in
+       bindings_opt >>= fun bindings ->
        gen_constraints st body >>= fun ((_, ty, _) as body) ->
-       Ok(ELet(pat, bound, body), ty, ann)
+       st.env <- env;
+       Ok(ELet(bindings, body), ty, ann)
     | Pretyped_tree.Literal lit ->
        begin match lit with
        | Pretyped_tree.Int i -> Ok(ELit (Int i), TCon TInt, ann)
@@ -215,3 +211,25 @@ let rec gen_constraints st (node, ann) =
        | None -> Err(Unbound_variable id)
   with
     Type_exn err -> Err err
+and
+  constrain_binding st = function
+  | ((Pretyped_tree.PVar id, pann), expr) ->
+     (* Let generalization occurs in this branch *)
+     enter_level st;
+     gen_constraints st expr >>= fun ((_, expr_ty, _) as expr) ->
+     leave_level st;
+     solve st;
+     let scheme = generalize st expr_ty in
+     begin match add (Local id) scheme st.env with
+     | Some env ->
+        st.env <- env;
+        let pat = (PVar(id, scheme), expr_ty, pann) in
+        Ok(pat, expr)
+     | None -> Err(Already_defined (Local id))
+     end
+  | (pat, expr) ->
+     (* Monomorphism restriction occurs in this branch *)
+     walk_pattern st pat >>= fun ((_, pat_ty, _) as pat) ->
+     gen_constraints st expr >>= fun ((_, expr_ty, _) as expr) ->
+     st.constraints <- Unify(pat_ty, expr_ty)::st.constraints;
+     Ok(pat, expr)

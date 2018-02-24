@@ -53,6 +53,8 @@ let add id scheme env =
   | None -> Some { env with map = IdMap.add id scheme env.map }
   | _ -> None
 
+let extend env = { map = IdMap.empty; parent = Some env }
+
 let poly_of_mono mono =
   let rec helper = function
     | TApp(t0, t1) -> QApp(helper t0, helper t1)

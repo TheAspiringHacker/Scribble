@@ -15,6 +15,8 @@ type 'a expr = 'a expr' * 'a
 and 'a expr' =
   | EApp of 'a expr * 'a expr
   | ELam of 'a pat * 'a expr
-  | ELet of 'a pat * 'a expr * 'a expr
+  | ELet of ('a binding list) * 'a expr
   | ELit of literal
   | EVar of Ident.t
+
+and 'a binding = 'a pat * 'a expr
