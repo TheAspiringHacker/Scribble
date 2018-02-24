@@ -164,52 +164,53 @@ let rec walk_pattern st (node, ann) =
 
 (** Given a pretyped tree, return a typed tree and constraints *)
 let rec gen_constraints st (node, ann) =
-  match node with
-  | Pretyped_tree.App(f, x) ->
-     let (_, f_ty, _) as f = gen_constraints st f in
-     let (_, x_ty, _) as x = gen_constraints st x in
-     let tv = TVar (fresh_var st KStar) in
-     let t = TApp(TApp(TCon TFun, x_ty), tv) in
-     st.constraints <- Unify(t, f_ty)::st.constraints;
-     (EApp(f, x), tv, ann)
-  | Pretyped_tree.Lambda(pat, body) ->
-     let (_, pat_ty, _) as pat = walk_pattern st pat in
-     let (_, body_ty, _) as body = gen_constraints st body in
-     let ty = TApp(TApp(TCon TFun, pat_ty), body_ty) in
-     (ELam(pat, body), ty, ann)
-  | Pretyped_tree.Let((Pretyped_tree.PVar id, pann), bound, body) ->
-     (* Let generalization occurs in this branch *)
-     enter_level st;
-     let (_, bound_ty, _) as bound = gen_constraints st bound in
-     leave_level st;
-     solve st;
-     let scheme = generalize st bound_ty in
-     begin match add (Local id) scheme st.env with
-     | Some env ->
-        st.env <- env;
-        let (_, ty, _) as body = gen_constraints st body in
-        let pat = (PVar(id, scheme), ty, pann) in
-        (ELet(pat, bound, body), ty, ann)
-     | None -> raise (Type_exn (Already_defined (Local id)))
-     end
-  | Pretyped_tree.Let(pat, bound, body) ->
-     (* Monomorphism restriction occurs in this branch *)
-     let (_, pat_ty, _) as pat = walk_pattern st pat in
-     let (_, bound_ty, _) as bound = gen_constraints st bound in
-     st.constraints <- Unify(pat_ty, bound_ty)::st.constraints;
-     let (_, ty, _) as body = gen_constraints st body in
-     (ELet(pat, bound, body), ty, ann)
-  | Pretyped_tree.Literal lit ->
-     begin match lit with
-     | Pretyped_tree.Int i -> (ELit (Int i), TCon TInt, ann)
-     | Pretyped_tree.Float f ->
-        (ELit (Float f), TCon TFloat, ann)
-     | Pretyped_tree.Char c ->
-        (ELit (Char c), TCon TChar, ann)
-     end
-  | Pretyped_tree.Var id ->
-     match IdMap.find_opt id st.env.map with
-     | Some scheme ->
-        let ty = instantiate st scheme in
-        ((EVar id), ty, ann)
-     | None -> raise (Type_exn (Unbound_variable id))
+  try
+    match node with
+    | Pretyped_tree.App(f, x) ->
+       gen_constraints st f >>= fun ((_, f_ty, _) as f) ->
+       gen_constraints st x >>= fun ((_, x_ty, _) as x) ->
+       let tv = TVar (fresh_var st KStar) in
+       let t = TApp(TApp(TCon TFun, x_ty), tv) in
+       st.constraints <- Unify(t, f_ty)::st.constraints;
+       Ok(EApp(f, x), tv, ann)
+    | Pretyped_tree.Lambda(pat, body) ->
+       let (_, pat_ty, _) as pat = walk_pattern st pat in
+       gen_constraints st body >>= fun ((_, body_ty, _) as body) ->
+       let ty = TApp(TApp(TCon TFun, pat_ty), body_ty) in
+       Ok(ELam(pat, body), ty, ann)
+    | Pretyped_tree.Let((Pretyped_tree.PVar id, pann), bound, body) ->
+       (* Let generalization occurs in this branch *)
+       enter_level st;
+       gen_constraints st bound >>= fun ((_, bound_ty, _) as bound) ->
+       leave_level st;
+       solve st;
+       let scheme = generalize st bound_ty in
+       begin match add (Local id) scheme st.env with
+       | Some env ->
+          st.env <- env;
+          gen_constraints st body >>= fun ((_, ty, _) as body) ->
+          let pat = (PVar(id, scheme), ty, pann) in
+          Ok(ELet(pat, bound, body), ty, ann)
+       | None -> raise (Type_exn (Already_defined (Local id)))
+       end
+    | Pretyped_tree.Let(pat, bound, body) ->
+       (* Monomorphism restriction occurs in this branch *)
+       let (_, pat_ty, _) as pat = walk_pattern st pat in
+       gen_constraints st bound >>= fun ((_, bound_ty, _) as bound) ->
+       st.constraints <- Unify(pat_ty, bound_ty)::st.constraints;
+       gen_constraints st body >>= fun ((_, ty, _) as body) ->
+       Ok(ELet(pat, bound, body), ty, ann)
+    | Pretyped_tree.Literal lit ->
+       begin match lit with
+       | Pretyped_tree.Int i -> Ok(ELit (Int i), TCon TInt, ann)
+       | Pretyped_tree.Float f -> Ok(ELit (Float f), TCon TFloat, ann)
+       | Pretyped_tree.Char c -> Ok(ELit (Char c), TCon TChar, ann)
+       end
+    | Pretyped_tree.Var id ->
+       match IdMap.find_opt id st.env.map with
+       | Some scheme ->
+          let ty = instantiate st scheme in
+          Ok((EVar id), ty, ann)
+       | None -> Err(Unbound_variable id)
+  with
+    Type_exn err -> Err err
