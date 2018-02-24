@@ -148,19 +148,20 @@ let rec walk_pattern st (node, ann) =
      let tvar = fresh_var st KStar in
      let poly = poly_of_mono (TVar tvar) in
      begin match add (Local id) poly st.env with
-     | Some env -> st.env <- env
-     | None -> raise (Type_exn (Already_defined (Local id)))
-     end;
-     PVar(id, poly), (TVar tvar), ann
+     | Some env ->
+        st.env <- env;
+        Ok(PVar(id, poly), (TVar tvar), ann)
+     | None -> Err(Already_defined (Local id))
+     end
   | Pretyped_tree.PPair(fst, snd) ->
-      let (_, fst_ty, _) as fst = walk_pattern st fst in
-      let (_, snd_ty, _) as snd = walk_pattern st snd in
+      walk_pattern st fst >>= fun ((_, fst_ty, _)as fst) ->
+      walk_pattern st snd >>= fun ((_, snd_ty, _) as snd) ->
       let ty = TApp(TApp(TCon TPair, fst_ty), snd_ty) in
-      (PPair(fst, snd), ty, ann)
-  | Pretyped_tree.PUnit -> (PUnit, TCon TUnit, ann)
+      Ok(PPair(fst, snd), ty, ann)
+  | Pretyped_tree.PUnit -> Ok(PUnit, TCon TUnit, ann)
   | Pretyped_tree.PWildcard ->
       let tvar = fresh_var st KStar in
-      (PWild, TVar tvar, ann)
+      Ok(PWild, TVar tvar, ann)
 
 (** Given a pretyped tree, return a typed tree and constraints *)
 let rec gen_constraints st (node, ann) =
@@ -174,7 +175,7 @@ let rec gen_constraints st (node, ann) =
        st.constraints <- Unify(t, f_ty)::st.constraints;
        Ok(EApp(f, x), tv, ann)
     | Pretyped_tree.Lambda(pat, body) ->
-       let (_, pat_ty, _) as pat = walk_pattern st pat in
+       walk_pattern st pat >>= fun ((_, pat_ty, _) as pat) ->
        gen_constraints st body >>= fun ((_, body_ty, _) as body) ->
        let ty = TApp(TApp(TCon TFun, pat_ty), body_ty) in
        Ok(ELam(pat, body), ty, ann)
@@ -191,11 +192,11 @@ let rec gen_constraints st (node, ann) =
           gen_constraints st body >>= fun ((_, ty, _) as body) ->
           let pat = (PVar(id, scheme), ty, pann) in
           Ok(ELet(pat, bound, body), ty, ann)
-       | None -> raise (Type_exn (Already_defined (Local id)))
+       | None -> Err(Already_defined (Local id))
        end
     | Pretyped_tree.Let(pat, bound, body) ->
        (* Monomorphism restriction occurs in this branch *)
-       let (_, pat_ty, _) as pat = walk_pattern st pat in
+       walk_pattern st pat >>= fun ((_, pat_ty, _) as pat) ->
        gen_constraints st bound >>= fun ((_, bound_ty, _) as bound) ->
        st.constraints <- Unify(pat_ty, bound_ty)::st.constraints;
        gen_constraints st body >>= fun ((_, ty, _) as body) ->
