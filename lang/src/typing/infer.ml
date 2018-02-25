@@ -187,11 +187,7 @@ let rec gen_constraints st (node, ann) =
        let binding_opts = List.map (constrain_binding st) bindings in
        let bindings_opt =
          List.fold_left
-           (* Maybe I can use applicatives here? *)
-           (fun acc next ->
-             acc >>= fun list ->
-             next >>= fun binding ->
-             Ok (binding::list))
+           (fun acc next -> (map List.cons next) <*> acc)
            (Ok []) binding_opts in
        bindings_opt >>= fun bindings ->
        gen_constraints st body >>= fun ((_, ty, _) as body) ->
