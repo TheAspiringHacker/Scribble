@@ -13,7 +13,7 @@ let _ =
       assert ((None <*> (Some 0)) = None);
       assert ((None <*> None) = None);
       assert (((Some 0) >>= (fun x -> Some (incr x))) = (Some 1));
-      assert ((None >>= (fun x -> Some incr)) = None)
+      assert ((None >>= (fun x -> Some (incr x))) = None)
     )
 
 let _ =
