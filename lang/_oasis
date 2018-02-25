@@ -47,3 +47,17 @@ Test "test_typing"
   TestTools: test_typing
   Command: $test_typing
   WorkingDirectory: test/unit
+
+Executable "test_util"
+  Path: test/unit
+  MainIs: test_util.ml
+  Build$: flag(tests)
+  BuildTools: ocamlbuild
+  BuildDepends:
+    util
+
+Test "test_util"
+  Run$: flag(tests)
+  TestTools: test_util
+  Command: $test_util
+  WorkingDirectory: test/unit

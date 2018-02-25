@@ -1,4 +1,4 @@
-print_endline "Begin typing test"
+let _ = print_endline "Begin typing test.";;
 
 let programs = [
     (Pretyped_tree.Literal (Pretyped_tree.Int 1), ()),
@@ -8,3 +8,5 @@ let programs = [
          (Pretyped_tree.Literal (Int 1), ())),
          ())
   ]
+
+let _ = print_endline "Typing test successful.";;
