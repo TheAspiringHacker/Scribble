@@ -184,12 +184,11 @@ let rec gen_constraints st (node, ann) =
     | Pretyped_tree.Let(bindings, body) ->
        let env = st.env in
        st.env <- extend env;
-       let binding_opts = List.map (constrain_binding st) bindings in
-       let bindings_opt =
+       let binding_ress = List.map (constrain_binding st) bindings in
+       let bindings_res =
          List.fold_left
-           (fun acc next -> (map List.cons next) <*> acc)
-           (Ok []) binding_opts in
-       bindings_opt >>= fun bindings ->
+           (fun acc next -> List.cons <$> next <*> acc) (Ok []) binding_ress in
+       bindings_res >>= fun bindings ->
        gen_constraints st body >>= fun ((_, ty, _) as body) ->
        st.env <- env;
        Ok(ELet(bindings, body), ty, ann)

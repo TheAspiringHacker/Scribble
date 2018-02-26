@@ -5,6 +5,7 @@ let (>$) f x = f x
 module type FUNCTOR = sig
   type 'a t
   val map : ('a -> 'b) -> 'a t -> 'b t
+  val (<$>) : ('a -> 'b) -> 'a t -> 'b t
 end
 
 module type APPLICATIVE = sig
@@ -21,6 +22,7 @@ end
 module Identity : MONAD with type 'a t = 'a = struct
   type 'a t = 'a
   let map f m = f m
+  let (<$>) = map
   let (<*>) = map
   let (>>=) m f = f m
   let return x = x
@@ -34,6 +36,8 @@ module OptionT (M : MONAD) : MONAD with type 'a t = ('a option) M.t = struct
       match option with
       | Some x -> Some (f x)
       | None -> None) m
+
+  let (<$>) = map
 
   let (<*>) f m =
     M.(>>=) f (fun f_opt ->
@@ -67,6 +71,8 @@ end) : MONAD with type 'a t = ((X.t, 'a) result) M.t = struct
       | Ok x -> Ok (f x)
       | Err err -> Err err) m
 
+  let (<$>) = map
+
   let (<*>) f m =
     M.(>>=) f (fun f_res ->
         match f_res with
@@ -94,6 +100,8 @@ end) : MONAD with type 'a t = X.t -> (('a * X.t) M.t) = struct
   let map f f_st st =
     let m = f_st st in
     M.map (fun (a, st) -> (f a, st)) m
+
+  let (<$>) = map
 
   let (<*>) applied arg st =
     let f_m = applied st in
