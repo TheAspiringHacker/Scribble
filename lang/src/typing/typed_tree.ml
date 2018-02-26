@@ -17,6 +17,9 @@ and 'a expr' =
   | ELam of 'a pat * 'a expr
   | ELet of ('a binding list) * 'a expr
   | ELit of literal
+  | EMat of 'a expr * ('a case list)
   | EVar of Ident.t
 
 and 'a binding = 'a pat * 'a expr
+
+and 'a case = 'a pat * ('a expr option) * 'a expr

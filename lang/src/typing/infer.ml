@@ -166,14 +166,14 @@ let rec walk_pattern st (node, ann) =
 let rec gen_constraints st (node, ann) =
   try
     match node with
-    | Pretyped_tree.App(f, x) ->
+    | Pretyped_tree.EApp(f, x) ->
        gen_constraints st f >>= fun ((_, f_ty, _) as f) ->
        gen_constraints st x >>= fun ((_, x_ty, _) as x) ->
        let tv = TVar (fresh_var st KStar) in
        let t = TApp(TApp(TCon TFun, x_ty), tv) in
        st.constraints <- Unify(t, f_ty)::st.constraints;
        Ok(EApp(f, x), tv, ann)
-    | Pretyped_tree.Lambda(pat, body) ->
+    | Pretyped_tree.ELam(pat, body) ->
        let env = st.env in
        st.env <- extend env;
        walk_pattern st pat >>= fun ((_, pat_ty, _) as pat) ->
@@ -181,24 +181,46 @@ let rec gen_constraints st (node, ann) =
        st.env <- env;
        let ty = TApp(TApp(TCon TFun, pat_ty), body_ty) in
        Ok(ELam(pat, body), ty, ann)
-    | Pretyped_tree.Let(bindings, body) ->
+    | Pretyped_tree.ELet(bindings, body) ->
        let env = st.env in
        st.env <- extend env;
        let binding_ress = List.map (constrain_binding st) bindings in
-       let bindings_res =
-         List.fold_left
-           (fun acc next -> List.cons <$> next <*> acc) (Ok []) binding_ress in
+       let f acc next = List.cons <$> next <*> acc in
+       let bindings_res = List.fold_left f (Ok []) binding_ress in
        bindings_res >>= fun bindings ->
        gen_constraints st body >>= fun ((_, ty, _) as body) ->
        st.env <- env;
        Ok(ELet(bindings, body), ty, ann)
-    | Pretyped_tree.Literal lit ->
+    | Pretyped_tree.ELit lit ->
        begin match lit with
        | Pretyped_tree.Int i -> Ok(ELit (Int i), TCon TInt, ann)
        | Pretyped_tree.Float f -> Ok(ELit (Float f), TCon TFloat, ann)
        | Pretyped_tree.Char c -> Ok(ELit (Char c), TCon TChar, ann)
        end
-    | Pretyped_tree.Var id ->
+    | Pretyped_tree.EMat(test, cases) ->
+       gen_constraints st test >>= fun ((_, test_ty, _) as test) ->
+       let helper st (pat, pred_opt, expr) =
+         walk_pattern st pat >>= fun ((_, pat_ty, _) as pat) ->
+         gen_constraints st expr >>= fun ((_, expr_ty, _) as expr) ->
+         let pred_res_opt = Option.map (gen_constraints st) pred_opt in
+         match pred_res_opt with
+         | Some result ->
+            result >>= fun ((_, pred_ty, _) as pred) ->
+            st.constraints <- Unify(pred_ty, TCon TBool)::st.constraints;
+            Ok(pat, Some pred, expr)
+         | None -> Ok(pat, None, expr) in
+       let case_ress = List.map (helper st) cases in
+       let f acc next = List.cons <$> next <*> acc in
+       let cases_res = List.fold_left f (Ok []) case_ress in
+       cases_res >>= fun cases ->
+       let tvar = TVar (fresh_var st KStar) (* Tvar is this form's type *) in
+       List.iter (fun ((_, pat_ty, _), _, (_, expr_ty, _)) ->
+           st.constraints <-
+             Unify(pat_ty, test_ty)
+             ::Unify(expr_ty, tvar)
+             ::st.constraints) cases;
+       Ok (EMat(test, cases), tvar, ann)
+    | Pretyped_tree.EVar id ->
        match IdMap.find_opt id st.env.map with
        | Some scheme ->
           let ty = instantiate st scheme in
@@ -206,8 +228,8 @@ let rec gen_constraints st (node, ann) =
        | None -> Err(Unbound_variable id)
   with
     Type_exn err -> Err err
-and
-  constrain_binding st = function
+
+and constrain_binding st = function
   | ((Pretyped_tree.PVar id, pann), expr) ->
      (* Let generalization occurs in this branch *)
      enter_level st;

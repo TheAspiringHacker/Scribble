@@ -1,6 +1,6 @@
 module IdMap = Map.Make(Ident)
 
-type tycon = TFun | TPair | TUnit | TChar | TFloat | TInt
+type tycon = TFun | TPair | TUnit | TBool | TChar | TFloat | TInt
 
 type kind = KStar | KFun
 
