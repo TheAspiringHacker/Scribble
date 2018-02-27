@@ -14,6 +14,7 @@ open Typed_tree
 open Util
 module TypeResult = Result(struct type t = type_error end)
 open TypeResult
+module IntMap = Map.Make(struct type t = int let compare = compare end)
 
 type constrain = Unify of monotype * monotype
 
@@ -23,6 +24,8 @@ type tvar =
     (** A type variable that has been unified *)
   | Link of monotype
 
+type substitution = tvar IntMap.t
+
 type state = {
     (** The typing context *)
     mutable env : env;
@@ -31,16 +34,15 @@ type state = {
     (** List of type pairs to unify *)
     mutable constraints : constrain list;
     (** A map of integer ids to type variables *)
-    tvars : (int, tvar) Hashtbl.t;
+    mutable subst : substitution;
     (** Used to give type variables lifetimes *)
     mutable current_level : int;
   }
 
 let fresh_var st kind = begin
-    let id = st.gensym in
-    Hashtbl.add st.tvars st.gensym (Unbound(kind, st.current_level));
+    st.subst <- IntMap.add st.gensym (Unbound(kind, st.current_level)) st.subst;
     st.gensym <- st.gensym + 1;
-    id
+    st.gensym - 1
   end
 
 let enter_level st = begin
@@ -51,47 +53,43 @@ let leave_level st = begin
     st.current_level <- st.current_level - 1
   end
 
-let rec occurs st id level = function
+let rec occurs_check subst id level = function
   | TVar id1 ->
-     begin match Hashtbl.find st.tvars id1 with
+     begin match IntMap.find id1 subst with
      | Unbound(_, level) ->
         if id = id1 then
-          true
+          None
         else
-          let id's_level = Hashtbl.find st.tvars id in
-          let id1's_level = Hashtbl.find st.tvars id1 in
+          let id's_level = IntMap.find id subst in
+          let id1's_level = IntMap.find id1 subst in
           (* Set level if necessary; I'm not sure if this is right so
              I will look for bugs here *)
-          begin if id's_level < id1's_level then
-            Hashtbl.replace st.tvars id1 id's_level
-          end;
-          false
-     | Link ty -> occurs st id level ty
+          if id's_level < id1's_level then
+            Some (IntMap.add id1 id's_level subst)
+          else
+            Some subst
+     | Link ty -> occurs_check subst id level ty
      end
-  | TApp(constr, arg) -> (occurs st id level constr) && (occurs st id level arg)
-  | _ -> false
+  | TApp(constr, arg) ->
+     Option.(>>=) (occurs_check subst id level constr) (fun subst ->
+       occurs_check subst id level arg)
+  | _ -> Some subst
 
-let raise_if_occurs st id level ty = begin
-    if occurs st id level ty then
-      raise (Type_exn(Recursive_unification(id, ty)))
-  end
-
-let rec unify st = function
-  | (TVar id0, TVar id1) when id0 = id1 -> ()
+let rec unify subst = function
+  | (TVar id0, TVar id1) when id0 = id1 -> Ok subst
   | (TVar id, ty) | (ty, TVar id) ->
-     begin match Hashtbl.find st.tvars id with
+     begin match IntMap.find id subst with
      | Unbound(_, level) ->
-        raise_if_occurs st id level ty;
-        Hashtbl.replace st.tvars id (Link ty)
-     | Link ty1 -> unify st (ty, ty1)
+        begin match occurs_check subst id level ty with
+        | Some subst -> Ok(IntMap.add id (Link ty) subst)
+        | None -> Err(Recursive_unification(id, ty))
+        end
+     | Link ty1 -> unify subst (ty, ty1)
      end
   | (TApp(t0, t1), TApp(t2, t3)) ->
-     let () = unify st (t0, t2) in
-     unify st (t1, t3)
-  | (TCon c0, TCon c1) when c0 = c1 -> ()
-  | (t0, t1) -> raise (Type_exn(Cannot_unify(t0, t1)))
-
-module IntMap = Map.Make(struct type t = int let compare = compare end)
+     unify subst (t0, t2) >>= fun subst -> unify subst (t1, t3)
+  | (TCon c0, TCon c1) when c0 = c1 -> Ok subst
+  | (t0, t1) -> Err(Cannot_unify(t0, t1))
 
 (** Turns a monotype into a polytype by quantifying over free tvars *)
 let generalize st monotype =
@@ -102,7 +100,7 @@ let generalize st monotype =
        (acc, QApp(q0, q1))
     | TCon constr -> (acc, QCon constr)
     | TVar tvar ->
-       match Hashtbl.find st.tvars tvar with
+       match IntMap.find tvar st.subst with
        | Unbound(kind, level) ->
           (* The tvar's level must be greater than the current level *)
           if level > st.current_level then
@@ -135,10 +133,13 @@ let instantiate st polytype =
 
 (** Unify a list of monotype pairs *)
 let solve st =
-  let rec helper = function
-    | [] -> ()
-    | (Unify(t0, t1))::xs -> unify st (t0, t1); helper xs
-  in helper st.constraints
+  let subst_result =
+    List.fold_left
+      (fun acc (Unify(t0, t1)) -> acc >>= fun subst -> unify subst (t0, t1))
+       (Ok st.subst) st.constraints
+  in match subst_result with
+       | Ok subst -> st.subst <- subst; st.constraints <- [];
+       | Err err -> raise (Type_exn(err))
 
 (** Walk a pattern, introducing variables into the environment *)
 let rec walk_pattern st (node, ann) =
