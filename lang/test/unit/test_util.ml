@@ -2,9 +2,9 @@ open Util
 
 let incr x = x + 1
 
-let _ = print_endline "Begin util test.";;
+let () = print_endline "Begin util test.";;
 
-let _ =
+let () =
   let open Option in (
       assert ((map incr (Some 0)) = (Some 1));
       assert ((map incr None) = None);
@@ -16,7 +16,7 @@ let _ =
       assert ((None >>= (fun x -> Some (incr x))) = None)
     )
 
-let _ =
+let () =
   let module IntResult = Result(struct type t = int end) in
   let open IntResult in (
       assert ((map incr (Ok 0)) = (Ok 1));
@@ -29,4 +29,4 @@ let _ =
       assert (((Err 0) >>= (fun x -> Ok (incr x))) = (Err 0))
     )
 
-let _ = print_endline "Util test successful.";;
+let () = print_endline "Util test successful."

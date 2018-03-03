@@ -15,6 +15,7 @@ open Util
 module TypeResult = Result(struct type t = type_error end)
 open TypeResult
 module IntMap = Map.Make(struct type t = int let compare = compare end)
+module Subst = IntMap
 
 type constrain = Unify of monotype * monotype
 
@@ -24,7 +25,7 @@ type tvar =
     (** A type variable that has been unified *)
   | Link of monotype
 
-type substitution = tvar IntMap.t
+type substitution = tvar Subst.t
 
 type state = {
     (** The typing context *)
@@ -39,8 +40,10 @@ type state = {
     mutable current_level : int;
   }
 
+let empty_subst = Subst.empty
+
 let fresh_var st kind = begin
-    st.subst <- IntMap.add st.gensym (Unbound(kind, st.current_level)) st.subst;
+    st.subst <- Subst.add st.gensym (Unbound(kind, st.current_level)) st.subst;
     st.gensym <- st.gensym + 1;
     st.gensym - 1
   end
@@ -55,17 +58,17 @@ let leave_level st = begin
 
 let rec occurs_check subst id level = function
   | TVar id1 ->
-     begin match IntMap.find id1 subst with
+     begin match Subst.find id1 subst with
      | Unbound(_, level) ->
         if id = id1 then
           None
         else
-          let id's_level = IntMap.find id subst in
-          let id1's_level = IntMap.find id1 subst in
+          let id's_level = Subst.find id subst in
+          let id1's_level = Subst.find id1 subst in
           (* Set level if necessary; I'm not sure if this is right so
              I will look for bugs here *)
           if id's_level < id1's_level then
-            Some (IntMap.add id1 id's_level subst)
+            Some (Subst.add id1 id's_level subst)
           else
             Some subst
      | Link ty -> occurs_check subst id level ty
@@ -78,10 +81,10 @@ let rec occurs_check subst id level = function
 let rec unify subst = function
   | (TVar id0, TVar id1) when id0 = id1 -> Ok subst
   | (TVar id, ty) | (ty, TVar id) ->
-     begin match IntMap.find id subst with
+     begin match Subst.find id subst with
      | Unbound(_, level) ->
         begin match occurs_check subst id level ty with
-        | Some subst -> Ok(IntMap.add id (Link ty) subst)
+        | Some subst -> Ok(Subst.add id (Link ty) subst)
         | None -> Err(Recursive_unification(id, ty))
         end
      | Link ty1 -> unify subst (ty, ty1)
@@ -100,15 +103,15 @@ let generalize st monotype =
        (acc, QApp(q0, q1))
     | TCon constr -> (acc, QCon constr)
     | TVar tvar ->
-       match IntMap.find tvar st.subst with
+       match Subst.find tvar st.subst with
        | Unbound(kind, level) ->
           (* The tvar's level must be greater than the current level *)
           if level > st.current_level then
             (* Did we already quantify this? *)
-            match IntMap.find_opt tvar map with
+            match Subst.find_opt tvar map with
             (* Yes *) | Some x -> (acc, QBound x)
             (* No  *) | None ->
-                         ((IntMap.add tvar count map, kind::list, count + 1),
+                         ((Subst.add tvar count map, kind::list, count + 1),
                           QBound count)
           else
             (acc, QFree tvar)
@@ -210,11 +213,11 @@ let rec gen_constraints st (node, ann) =
      let cases_res = List.fold_left f (Ok []) case_ress in
      cases_res >>= fun cases ->
      let tvar = TVar (fresh_var st KStar) (* Tvar is this form's type *) in
-     List.iter (fun ((_, pat_ty, _), _, (_, expr_ty, _)) ->
+     List.iter
+       (fun ((_, pat_ty, _), _, (_, expr_ty, _)) ->
          st.constraints <-
-           Unify(pat_ty, test_ty)
-           ::Unify(expr_ty, tvar)
-           ::st.constraints) cases;
+           Unify(pat_ty, test_ty)::Unify(expr_ty, tvar)::st.constraints)
+       cases;
      Ok (EMat(test, cases), tvar, ann)
   | Pretyped_tree.EVar id ->
      match IdMap.find_opt id st.env.map with

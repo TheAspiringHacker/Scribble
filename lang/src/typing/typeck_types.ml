@@ -40,6 +40,8 @@ type type_error =
 
 exception Type_exn of type_error
 
+let empty_env = {map = IdMap.empty; parent = None}
+
 let rec lookup id env =
   match IdMap.find_opt id env.map with
   | Some x -> Some x

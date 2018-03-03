@@ -32,7 +32,6 @@ Library "util"
   Modules:
     Util
   BuildTools: ocamlbuild
-  BuildDepends:
 
 Executable "test_typing"
   Path: test/unit
@@ -40,7 +39,8 @@ Executable "test_typing"
   Build$: flag(tests)
   BuildTools: ocamlbuild
   BuildDepends:
-    typing
+    typing,
+    util
 
 Test "test_typing"
   Run$: flag(tests)
