@@ -19,9 +19,9 @@ type quantitype =
 
 type 'a pred = string list * 'a
 
-(* A polytype, or type scheme, is a generic type (quantifies type variables ) *)
+(** A polytype, or type scheme, is a generic type (quantifies type variables) *)
 type polytype = {
-    qvars : kind array;
+    qvars : (kind) array;
     quantitype : quantitype
   }
 

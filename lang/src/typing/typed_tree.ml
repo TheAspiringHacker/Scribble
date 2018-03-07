@@ -1,4 +1,10 @@
-type 'a pat = 'a pat' * Typeck_types.monotype * 'a
+type ('node, 'ann) typed = {
+    node : 'node;
+    ty : Typeck_types.monotype;
+    ann : 'ann
+  }
+
+type 'a pat = ('a pat', 'a) typed
 and 'a pat' =
   | PPair of 'a pat * 'a pat
   | PUnit
@@ -10,7 +16,7 @@ type literal =
   | Float of float
   | Int of int
 
-type 'a expr = 'a expr' * Typeck_types.monotype * 'a
+type 'a expr = ('a expr', 'a) typed
 
 and 'a expr' =
   | EApp of 'a expr * 'a expr
