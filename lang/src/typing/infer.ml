@@ -21,9 +21,15 @@ type constrain = Unify of monotype * monotype
 
 type tvar =
     (** An unbound type variable *)
-  | Unbound of kind * int
+  | Unbound
+    of kind (** Kind *)
+     * int  (** Level / lifetime *)
     (** A type variable that has been unified *)
   | Link of monotype
+    (** A quantified type variable *)
+  | Quantified
+    of int  (** Level of polytype *)
+     * int  (** Index in the kind array *)
 
 type substitution = tvar Subst.t
 
@@ -72,6 +78,7 @@ let rec occurs_check subst id level = function
           else
             Some subst
      | Link ty -> occurs_check subst id level ty
+     | Quantified _ -> Some subst
      end
   | TApp(constr, arg) ->
      Option.(>>=) (occurs_check subst id level constr) (fun subst ->
@@ -88,6 +95,7 @@ let rec unify subst = function
         | None -> Err(Recursive_unification(id, ty))
         end
      | Link ty1 -> unify subst (ty, ty1)
+     | Quantified _ -> Err(Cannot_unify(TVar id, ty))
      end
   | (TApp(t0, t1), TApp(t2, t3)) ->
      unify subst (t0, t2) >>= fun subst -> unify subst (t1, t3)
@@ -96,42 +104,55 @@ let rec unify subst = function
 
 (** Turns a monotype into a polytype by quantifying over free tvars *)
 let generalize st monotype =
+  (* map is map of tvar ids to indices in polytype *)
+  (* list is list of kinds *)
+  (* count is counter for fresh indices *)
   let rec helper ((map, list, count) as acc) = function
     | TApp(t0, t1) ->
-       let acc, q0 = helper acc t0 in
-       let acc, q1 = helper acc t1 in
-       (acc, QApp(q0, q1))
-    | TCon constr -> (acc, QCon constr)
+       let acc = helper acc t0 in
+       let acc = helper acc t1 in
+       acc
+    | TCon constr -> acc
     | TVar tvar ->
        match Subst.find tvar st.subst with
        | Unbound(kind, level) ->
-          (* The tvar's level must be greater than the current level *)
+          (* The tvar's level must be GREATER than the current level *)
           if level > st.current_level then
             (* Did we already quantify this? *)
             match Subst.find_opt tvar map with
-            (* Yes *) | Some x -> (acc, QBound x)
-            (* No  *) | None ->
-                         ((Subst.add tvar count map, kind::list, count + 1),
-                          QBound count)
+            | Some _ -> acc
+            | None ->
+               (let quantified = Quantified(st.current_level, count) in
+                st.subst <- Subst.add tvar quantified st.subst);
+               (Subst.add tvar count map, kind::list, count + 1)
           else
-            (acc, QFree tvar)
+            acc
        | Link ty -> helper acc ty
-  in let ((_, list, _), qty) = helper (IntMap.empty, [], 0) monotype in
-     (* Reverse the accumulated list (when accumulated, rightmost is head) *)
-     {qvars = Array.of_list @@ List.rev list; quantitype = qty}
+       | Quantified _ -> acc
+  in let (_, list, _) = helper (IntMap.empty, [], 0) monotype in
+     { qvars = Array.of_list list
+     ; level = st.current_level
+     ; quantitype = monotype }
 
 (** Turns a polytype into a monotype, replacing the qvars with fresh tvars *)
 let instantiate st polytype =
   (* Generate an array of fresh type variables *)
   let ls = Array.fold_left
              (fun ls kind -> (fresh_var st kind)::ls) [] polytype.qvars
-  in let array = Array.of_list @@ List.rev ls in
+  in let array = Array.of_list ls in
      (* Helper function that replaces qvars with tvars from the array *)
      let rec helper = function
-       | QApp(t0, t1) -> TApp(helper t0, helper t1)
-       | QBound idx -> TVar (array.(idx))
-       | QFree tvar -> TVar tvar
-       | QCon constr -> TCon constr
+       | TApp(t0, t1) -> TApp(helper t0, helper t1)
+       | TVar idx ->
+          begin match Subst.find idx st.subst with
+          | Unbound(kind, idx) -> TVar idx
+          | Link ty -> helper ty
+          (** Instantiate qvar *)
+          | Quantified(x, idx) when x = polytype.level -> TVar(array.(idx))
+          (** Don't instantiate qvar *)
+          | Quantified _ -> TVar idx
+          end
+       | x -> x
      in helper polytype.quantitype
 
 (** Unify a list of monotype pairs *)
@@ -145,7 +166,7 @@ let rec walk_pattern st (node, ann) =
   match node with
   | Pretyped_tree.PVar id ->
      let tvar = fresh_var st KStar in
-     let poly = poly_of_mono (TVar tvar) in
+     let poly = poly_of_mono st.current_level (TVar tvar) in
      begin match add (Local id) poly st.env with
      | Some env ->
         st.env <- env;
@@ -237,6 +258,8 @@ and constrain_binding st = function
      leave_level st;
      solve st.subst st.constraints >>= fun subst ->
      st.subst <- subst;
+     (* At the point of generalization, all tvars to quantify have a GREATER
+        level than the current level *)
      let scheme = generalize st expr.ty in
      begin match add (Local id) scheme st.env with
      | Some env ->

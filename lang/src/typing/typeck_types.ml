@@ -10,19 +10,14 @@ type monotype =
   | TCon of tycon
   | TVar of int
 
-(** A quantitype is the body of a type scheme *)
-type quantitype =
-  | QApp of quantitype * quantitype
-  | QBound of int
-  | QFree of int
-  | QCon of tycon
-
 type 'a pred = string list * 'a
 
 (** A polytype, or type scheme, is a generic type (quantifies type variables) *)
 type polytype = {
     qvars : (kind) array;
-    quantitype : quantitype
+    (** Indicates which qvars belongs to it (levels must equal) *)
+    level : int;
+    quantitype : monotype
   }
 
 (** An environment is a mapping of variables to polytypes *)
@@ -57,9 +52,5 @@ let add id scheme env =
 
 let extend env = { map = IdMap.empty; parent = Some env }
 
-let poly_of_mono mono =
-  let rec helper = function
-    | TApp(t0, t1) -> QApp(helper t0, helper t1)
-    | TCon c -> QCon c
-    | TVar tv -> QFree tv
-  in {qvars = [||]; quantitype = helper mono}
+(** Create polytype from monotype without generalizing *)
+let poly_of_mono level mono = {qvars = [||]; level = level; quantitype = mono}
