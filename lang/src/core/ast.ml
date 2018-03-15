@@ -1,4 +1,17 @@
-type 'a pat = 'a pat' * 'a
+type tycon = TFun | TUnit | TPair | TInt | TBool | TChar | TFloat
+
+type ty =
+  | TApp of ty * ty
+  | TCon of tycon
+  | TVar of int * int
+
+type ('node, 'ann) ast = {
+    node : 'node;
+    ty : ty;
+    ann : 'ann;
+  }
+
+type 'a pat = ('a pat', 'a) ast
 and 'a pat' =
   | PPair of 'a pat * 'a pat
   | PUnit
@@ -10,7 +23,7 @@ type literal =
   | Float of float
   | Int of int
 
-type 'a expr = 'a expr' * 'a
+type 'a expr = ('a expr', 'a) ast
 
 and 'a expr' =
   | EApp of 'a expr * 'a expr
