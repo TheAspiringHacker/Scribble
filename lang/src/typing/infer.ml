@@ -21,15 +21,11 @@ type constrain = Unify of monotype * monotype
 
 type tvar =
     (** An unbound type variable *)
-  | Unbound
-    of kind (** Kind *)
-     * int  (** Level / lifetime *)
+  | Unbound of {kind : kind; level : int}
     (** A type variable that has been unified *)
   | Link of monotype
     (** A quantified type variable *)
-  | Quantified
-    of int  (** Level of polytype *)
-     * int  (** Index in the kind array *)
+  | Quantified of {level : int; index : int}
 
 type substitution = tvar Subst.t
 
@@ -49,7 +45,7 @@ type state = {
 let empty_subst = Subst.empty
 
 let fresh_var st kind = begin
-    st.subst <- Subst.add st.gensym (Unbound(kind, st.current_level)) st.subst;
+    st.subst <- Subst.add st.gensym (Unbound{kind = kind; level = st.current_level}) st.subst;
     st.gensym <- st.gensym + 1;
     st.gensym - 1
   end
@@ -65,7 +61,7 @@ let leave_level st = begin
 let rec occurs_check subst id level = function
   | TVar id1 ->
      begin match Subst.find id1 subst with
-     | Unbound(_, level) ->
+     | Unbound{level} ->
         if id = id1 then
           None
         else
@@ -89,7 +85,7 @@ let rec unify subst = function
   | (TVar id0, TVar id1) when id0 = id1 -> Ok subst
   | (TVar id, ty) | (ty, TVar id) ->
      begin match Subst.find id subst with
-     | Unbound(_, level) ->
+     | Unbound{level; _} ->
         begin match occurs_check subst id level ty with
         | Some subst -> Ok(Subst.add id (Link ty) subst)
         | None -> Err(Recursive_unification(id, ty))
@@ -115,15 +111,16 @@ let generalize st monotype =
     | TCon constr -> acc
     | TVar tvar ->
        match Subst.find tvar st.subst with
-       | Unbound(kind, level) ->
+       | Unbound{kind; level} ->
           (* The tvar's level must be GREATER than the current level *)
           if level > st.current_level then
             (* Did we already quantify this? *)
             match Subst.find_opt tvar map with
             | Some _ -> acc
             | None ->
-               (let quantified = Quantified(st.current_level, count) in
-                st.subst <- Subst.add tvar quantified st.subst);
+               (let quantified =
+                  Quantified {level = st.current_level; index = count}
+                in st.subst <- Subst.add tvar quantified st.subst);
                (Subst.add tvar count map, kind::list, count + 1)
           else
             acc
@@ -145,10 +142,11 @@ let instantiate st polytype =
        | TApp(t0, t1) -> TApp(helper t0, helper t1)
        | TVar idx ->
           begin match Subst.find idx st.subst with
-          | Unbound(kind, idx) -> TVar idx
+          | Unbound{kind; level} -> TVar level
           | Link ty -> helper ty
           (** Instantiate qvar *)
-          | Quantified(x, idx) when x = polytype.level -> TVar(array.(idx))
+          | Quantified{level; index} when level = polytype.level
+            -> TVar(array.(index))
           (** Don't instantiate qvar *)
           | Quantified _ -> TVar idx
           end
@@ -170,18 +168,18 @@ let rec walk_pattern st (node, ann) =
      begin match add (Local id) poly st.env with
      | Some env ->
         st.env <- env;
-        Ok{node = PVar(id, poly); ty = TVar tvar; ann = ann}
+        Ok {node = PVar(id, poly); ty = TVar tvar; ann = ann}
      | None -> Err(Already_defined (Local id))
      end
   | Pretyped_tree.PPair(fst, snd) ->
       walk_pattern st fst >>= fun fst ->
       walk_pattern st snd >>= fun snd ->
       let ty = TApp(TApp(TCon TPair, fst.ty), snd.ty) in
-      Ok{node = PPair(fst, snd); ty = ty; ann}
+      Ok {node = PPair(fst, snd); ty = ty; ann}
   | Pretyped_tree.PUnit -> Ok{node = PUnit; ty = TCon TUnit; ann = ann}
   | Pretyped_tree.PWildcard ->
       let tvar = fresh_var st KStar in
-      Ok{node = PWild; ty = TVar tvar; ann = ann}
+      Ok {node = PWild; ty = TVar tvar; ann = ann}
 
 (** Given a pretyped tree, return a typed tree and constraints *)
 let rec gen_constraints st (node, ann) =
@@ -192,7 +190,7 @@ let rec gen_constraints st (node, ann) =
      let tv = TVar (fresh_var st KStar) in
      let t = TApp(TApp(TCon TFun, x.ty), tv) in
      st.constraints <- Unify(t, f.ty)::st.constraints;
-     Ok{node = EApp(f, x); ty = tv; ann = ann}
+     Ok {node = EApp(f, x); ty = tv; ann = ann}
   | Pretyped_tree.ELam(pat, body) ->
      let env = st.env in
      st.env <- extend env;
@@ -200,7 +198,7 @@ let rec gen_constraints st (node, ann) =
      gen_constraints st body >>= fun body ->
      st.env <- env;
      let ty = TApp(TApp(TCon TFun, pat.ty), body.ty) in
-     Ok{node = ELam(pat, body); ty = ty; ann = ann}
+     Ok {node = ELam(pat, body); ty = ty; ann = ann}
   | Pretyped_tree.ELet(bindings, body) ->
      let env = st.env in
      st.env <- extend env;
@@ -210,15 +208,15 @@ let rec gen_constraints st (node, ann) =
      bindings_res >>= fun bindings ->
      gen_constraints st body >>= fun body ->
      st.env <- env;
-     Ok{node = ELet(bindings, body); ty = body.ty; ann = ann}
+     Ok {node = ELet(bindings, body); ty = body.ty; ann = ann}
   | Pretyped_tree.ELit lit ->
      begin match lit with
      | Pretyped_tree.Int i ->
-        Ok{node = ELit (Int i); ty = TCon TInt; ann = ann}
+        Ok {node = ELit (Int i); ty = TCon TInt; ann = ann}
      | Pretyped_tree.Float f ->
-        Ok{node = ELit (Float f); ty = TCon TFloat; ann = ann}
+        Ok {node = ELit (Float f); ty = TCon TFloat; ann = ann}
      | Pretyped_tree.Char c ->
-        Ok{node = ELit (Char c); ty = TCon TChar; ann = ann}
+        Ok {node = ELit (Char c); ty = TCon TChar; ann = ann}
      end
   | Pretyped_tree.EMat(test, cases) ->
      gen_constraints st test >>= fun test ->
@@ -247,7 +245,7 @@ let rec gen_constraints st (node, ann) =
      match IdMap.find_opt id st.env.map with
      | Some scheme ->
         let ty = instantiate st scheme in
-        Ok{node = EVar id; ty = ty; ann = ann}
+        Ok {node = EVar id; ty = ty; ann = ann}
      | None -> Err(Unbound_variable id)
 
 and constrain_binding st = function
