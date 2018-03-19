@@ -45,7 +45,10 @@ type state = {
 let empty_subst = Subst.empty
 
 let fresh_var st kind = begin
-    st.subst <- Subst.add st.gensym (Unbound{kind = kind; level = st.current_level}) st.subst;
+    st.subst <- Subst.add
+                  st.gensym
+                  (Unbound {kind = kind; level = st.current_level})
+                  st.subst;
     st.gensym <- st.gensym + 1;
     st.gensym - 1
   end
@@ -145,8 +148,8 @@ let instantiate st polytype =
           | Unbound{kind; level} -> TVar level
           | Link ty -> helper ty
           (** Instantiate qvar *)
-          | Quantified{level; index} when level = polytype.level
-            -> TVar(array.(index))
+          | Quantified {level; index} when level = polytype.level ->
+             TVar(array.(index))
           (** Don't instantiate qvar *)
           | Quantified _ -> TVar idx
           end
