@@ -272,3 +272,27 @@ and constrain_binding st = function
      gen_constraints st expr >>= fun expr ->
      st.constraints <- Unify(pat.ty, expr.ty)::st.constraints;
      Ok(pat, expr)
+
+(** Convert internal typechecker type representation into AST representation *)
+let rec ast_of_type st = function
+  | TApp(f, x) -> Ast.TApp(ast_of_type st f, ast_of_type st x)
+  | TCon constr ->
+     Ast.TCon
+       begin match constr with
+       | TFun -> Ast.TFun
+       | TPair -> Ast.TPair
+       | TUnit -> Ast.TUnit
+       | TBool -> Ast.TBool
+       | TChar -> Ast.TChar
+       | TFloat -> Ast.TFloat
+       | TInt -> Ast.TInt
+       end
+  | TVar tvar ->
+     match Subst.find tvar st.subst with
+       (* If the tvar is unassigned, make it an Int *)
+     | Unbound {kind; level} -> begin
+         st.subst <- Subst.add tvar (Link (TCon TInt)) st.subst;
+         Ast.TCon Ast.TInt
+       end
+     | Link ty -> ast_of_type st ty
+     | Quantified {level; index} -> Ast.TVar(level, index)
