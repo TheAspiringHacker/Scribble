@@ -1,9 +1,13 @@
+type kind = KStar | KFun of kind * kind
+
 type tycon = TFun | TUnit | TPair | TInt | TBool | TChar | TFloat
 
 type ty =
   | TApp of ty * ty
   | TCon of tycon
   | TVar of int * int
+
+type ty_scheme = Forall of (kind array) * ty
 
 type ('node, 'ann) ast = {
     node : 'node;

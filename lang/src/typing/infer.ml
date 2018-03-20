@@ -2,7 +2,7 @@
 This is the type inferencer. The current steps are to
   0. Generate constraints and a typed tree from a pretyped tree
   1. Solve the constraints at the let bindings
-  2. Check for unquantified type variables and return a core AST (TODO)
+  2. Check for unquantified type variables and return a core AST
 
 This type inferencer uses the optimization of "levels" from the OCaml
 type inferencer to determine which type variables to quantify. See
@@ -90,16 +90,16 @@ let rec unify subst = function
      begin match Subst.find id subst with
      | Unbound{level; _} ->
         begin match occurs_check subst id level ty with
-        | Some subst -> Ok(Subst.add id (Link ty) subst)
+        | Some subst -> Ok (Subst.add id (Link ty) subst)
         | None -> Err(Recursive_unification(id, ty))
         end
      | Link ty1 -> unify subst (ty, ty1)
-     | Quantified _ -> Err(Cannot_unify(TVar id, ty))
+     | Quantified _ -> Err (Cannot_unify(TVar id, ty))
      end
   | (TApp(t0, t1), TApp(t2, t3)) ->
      unify subst (t0, t2) >>= fun subst -> unify subst (t1, t3)
   | (TCon c0, TCon c1) when c0 = c1 -> Ok subst
-  | (t0, t1) -> Err(Cannot_unify(t0, t1))
+  | (t0, t1) -> Err (Cannot_unify(t0, t1))
 
 (** Turns a monotype into a polytype by quantifying over free tvars *)
 let generalize st monotype =
@@ -114,7 +114,7 @@ let generalize st monotype =
     | TCon constr -> acc
     | TVar tvar ->
        match Subst.find tvar st.subst with
-       | Unbound{kind; level} ->
+       | Unbound {kind; level} ->
           (* The tvar's level must be GREATER than the current level *)
           if level > st.current_level then
             (* Did we already quantify this? *)
@@ -145,7 +145,7 @@ let instantiate st polytype =
        | TApp(t0, t1) -> TApp(helper t0, helper t1)
        | TVar idx ->
           begin match Subst.find idx st.subst with
-          | Unbound{kind; level} -> TVar level
+          | Unbound {kind; level} -> TVar level
           | Link ty -> helper ty
           (** Instantiate qvar *)
           | Quantified {level; index} when level = polytype.level ->
@@ -276,6 +276,11 @@ and constrain_binding st = function
      st.constraints <- Unify(pat.ty, expr.ty)::st.constraints;
      Ok(pat, expr)
 
+(** Kind to kind *)
+let rec ast_of_kind = function
+  | KStar -> Ast.KStar
+  | KFun(x, y) -> Ast.KFun(ast_of_kind x, ast_of_kind y)
+
 (** Convert internal typechecker type representation into AST representation *)
 let rec ast_of_type st = function
   | TApp(f, x) -> Ast.TApp(ast_of_type st f, ast_of_type st x)
@@ -299,3 +304,46 @@ let rec ast_of_type st = function
        end
      | Link ty -> ast_of_type st ty
      | Quantified {level; index} -> Ast.TVar(level, index)
+
+(** Convert typed tree pattern type to AST pattern type *)
+let rec ast_of_pattern st {node; ty; ann} =
+  Ast.{ node = begin match node with
+               | Typed_tree.PPair(fst, snd) ->
+                  Ast.PPair(ast_of_pattern st fst, ast_of_pattern st snd)
+               | PUnit -> Ast.PUnit
+               | PVar(str_id, polyty) -> Ast.PVar(str_id)
+               | PWild -> Ast.PWild
+               end
+      ; ty = ast_of_type st ty
+      ; ann = ann }
+
+(** Convert expr to AST *)
+let rec ast_of_expr st {node; ty; ann} =
+  Ast.{ node = begin match node with
+               | Typed_tree.EApp(f, x) ->
+                  Ast.EApp(ast_of_expr st f, ast_of_expr st x)
+               | ELam(pat, body) ->
+                  Ast.ELam(ast_of_pattern st pat, ast_of_expr st body)
+               | ELet(bindings, body) ->
+                  Ast.ELet(ast_of_bindings st bindings, ast_of_expr st body)
+               | ELit lit -> Ast.ELit
+                               begin match lit with
+                               | Typed_tree.Char c -> Ast.Char c
+                               | Typed_tree.Float f -> Ast.Float f
+                               | Typed_tree.Int i -> Ast.Int i
+                              end
+               | EMat(test, cases) ->
+                  Ast.EMat(ast_of_expr st test, List.map (ast_of_case st) cases)
+               | EVar ident -> Ast.EVar ident
+               end
+      ; ty = ast_of_type st ty
+      ; ann = ann }
+
+and ast_of_bindings st bindings =
+  List.map (fun (pat, expr) ->
+      (ast_of_pattern st pat, ast_of_expr st expr)) bindings
+
+and ast_of_case st (pat, expr_opt, expr) =
+    (ast_of_pattern st pat,
+     Option.map (ast_of_expr st) expr_opt,
+     ast_of_expr st expr)

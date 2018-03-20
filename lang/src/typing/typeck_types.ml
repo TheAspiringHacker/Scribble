@@ -2,7 +2,7 @@ module IdMap = Map.Make(Ident)
 
 type tycon = TFun | TPair | TUnit | TBool | TChar | TFloat | TInt
 
-type kind = KStar | KFun
+type kind = KStar | KFun of kind * kind
 
 (** A monotype is a regular type *)
 type monotype =
