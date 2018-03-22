@@ -21,6 +21,7 @@ const Bexp = (function(window, document) {
     var Editor = function(elem, spec) {
         this.BLOCK_HEIGHT = 25;
         this.SPACING = 5;
+        this.TAB_WIDTH = 30;
         this.rootElement = elem;
         this.sidebar = document.createElement('div');
         this.sidebar.setAttribute('id', 'sidebar');
@@ -177,6 +178,7 @@ const Bexp = (function(window, document) {
                     ++argIdx;
                     break;
                 case 'newline':
+                case 'tab':
                     break;
                 default:
                     console.error(self.op.grammar[i].type + ' not a case');
@@ -195,7 +197,7 @@ const Bexp = (function(window, document) {
         return (this.newlines + 1) * this.editor.BLOCK_HEIGHT;
     };
     BlockExpr.prototype.updateSVG = function() {
-        var rowWidth = this.editor.SPACING;
+        var rowWidth = 0;
         var largestWidth = 0;
         var nonterminalIdx = 0;
         var oldWidth = this.width();
@@ -216,15 +218,20 @@ const Bexp = (function(window, document) {
                 ++this.newlines;
                 continue;
             }
+            if(this.grammar[i].type == 'tab') {
+                rowWidth += this.editor.TAB_WIDTH;
+                continue;
+            }
             var child = iter.next().value;
             var offset = this.newlines * this.editor.BLOCK_HEIGHT;
             if(this.grammar[i].type == 'token') {
+                rowWidth += this.editor.SPACING;
                 child.transform.translation = {x: rowWidth, y: offset + 17};
                 rowWidth += child.width() + this.editor.SPACING;
             } else if(this.grammar[i].type == 'nonterminal') {
                 child.transform.translation.x = rowWidth;
                 child.transform.translation.y = offset;
-                rowWidth += child.width() + this.editor.SPACING;
+                rowWidth += child.width();
                 if(this.args[nonterminalIdx] == null) {
                 } else {
                     if(this.args[nonterminalIdx].newlines > 0) {

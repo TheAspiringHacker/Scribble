@@ -49,7 +49,7 @@ const SPEC = {
                 },
                 {'type' : 'token', 'text' : 'then'},
                 {'type' : 'newline'},
-                {'type' : 'token', 'text' : '  '},
+                {'type' : 'tab'},
                 {
                     'type' : 'nonterminal',
                     'nonterminal' : 'expr'
@@ -57,7 +57,7 @@ const SPEC = {
                 {'type' : 'newline'},
                 {'type' : 'token', 'text' : 'else'},
                 {'type' : 'newline'},
-                {'type' : 'token', 'text' : '  '},
+                {'type' : 'tab'},
                 {
                     'type' : 'nonterminal',
                     'nonterminal' : 'expr'
@@ -90,14 +90,13 @@ const SPEC = {
                 }
             ],
             'match' : [
-                {'type' : 'token', 'text' : 'match'},
+                {'type' : 'token', 'text' : 'switch'},
                 {
                     'type' : 'nonterminal',
                     'nonterminal' : 'expr'
                 },
                 {'type' : 'token', 'text' : 'with'},
                 {'type' : 'newline'},
-                {'type' : 'token', 'text' : '  '},
                 {
                     'type' : 'nonterminal',
                     'nonterminal' : 'case'
@@ -116,8 +115,8 @@ const SPEC = {
                 }
             ]
         },
-        'binding' : {
-            'binding' : [
+        'bindingList' : {
+            'cons' : [
                 {
                     'type' : 'nonterminal',
                     'nonterminal' : 'pattern'
@@ -127,14 +126,6 @@ const SPEC = {
                     'type' : 'nonterminal',
                     'nonterminal' : 'expr'
                 },
-            ]
-        },
-        'bindingList' : {
-            'cons' : [
-                {
-                    'type' : 'nonterminal',
-                    'nonterminal' : 'binding'
-                },
                 {'type' : 'token', 'text' : 'and'},
                 {'type' : 'newline'},
                 {
@@ -143,22 +134,26 @@ const SPEC = {
                 }
             ],
             'nil' : [
-                {'type' : 'token', 'text' : 'empty binding group'}
+                {'type' : 'token', 'text' : 'end defs'}
             ]
         },
         'case' : {
             'case' : [
+                {'type' : 'token', 'text' : 'case'},
                 {
                     'type' : 'nonterminal',
                     'nonterminal' : 'pattern'
                 },
-                {'type' : 'token', 'text' : '=>'},
+                {'type' : 'token', 'text' : ':'},
+                {'type' : 'newline'},
+                {'type' : 'tab'},
                 {
                     'type' : 'nonterminal',
                     'nonterminal' : 'expr'
                 }
             ],
             'caseIf' : [
+                {'type' : 'token', 'text' : 'case'},
                 {
                     'type' : 'nonterminal',
                     'nonterminal' : 'pattern'
@@ -168,7 +163,9 @@ const SPEC = {
                     'type' : 'nonterminal',
                     'nonterminal' : 'expr'
                 },
-                {'type' : 'token', 'text' : '=>'},
+                {'type' : 'token', 'text' : ':'},
+                {'type' : 'newline'},
+                {'type' : 'tab'},
                 {
                     'type' : 'nonterminal',
                     'nonterminal' : 'expr'
@@ -177,11 +174,11 @@ const SPEC = {
         },
         'caseList' : {
             'cons' : [
+                {'type' : 'token', 'text' : '|'},
                 {
                     'type' : 'nonterminal',
                     'nonterminal' : 'case'
                 },
-                {'type' : 'token', 'text' : ','},
                 {'type' : 'newline'},
                 {
                     'type' : 'nonterminal',
@@ -189,7 +186,7 @@ const SPEC = {
                 }
             ],
             'nil' : [
-                {'type' : 'token', 'text' : 'empty case list'}
+                {'type' : 'token', 'text' : 'end switch'}
             ]
         }
     }
