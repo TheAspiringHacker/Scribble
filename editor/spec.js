@@ -17,136 +17,180 @@
  */
 ;'use strict';
 
-var spec = {
+const SPEC = {
     'categories' : [
         {
-            'id' : 'Expression',
-            'blocks' : ['apply', 'if', 'let', 'letRec', 'match', 'tuple']
+            'id' : 'Expression'
         },
         {
-            'id' : 'Pattern',
-            'blocks' : []
+            'id' : 'Pattern'
         },
         {
-            'id' : 'Type',
-            'blocks' : []
+            'id' : 'Type'
         }
     ],
-    'blocks' : {
-        'apply' : {
-            'grammar' : [
+    'nonterminals' : {
+        'expr' : {
+            'apply' : [
                 {
                     'type' : 'nonterminal',
-                    'id' : 'fun',
                     'nonterminal' : 'expr'
                 },
                 {
                     'type' : 'nonterminal',
-                    'id' : 'arg',
                     'nonterminal' : 'expr'
                 }
             ],
-            'category' : 'expr'
-        },
-        'if' : {
-            'grammar' : [
+            'if' : [
                 {'type' : 'token', 'text' : 'if'},
                 {
                     'type' : 'nonterminal',
-                    'id' : 'pred',
                     'nonterminal' : 'expr'
                 },
-                {'type' : 'newline'},
                 {'type' : 'token', 'text' : 'then'},
+                {'type' : 'newline'},
+                {'type' : 'token', 'text' : '  '},
                 {
                     'type' : 'nonterminal',
-                    'id' : 'cons',
                     'nonterminal' : 'expr'
                 },
                 {'type' : 'newline'},
                 {'type' : 'token', 'text' : 'else'},
+                {'type' : 'newline'},
+                {'type' : 'token', 'text' : '  '},
                 {
                     'type' : 'nonterminal',
-                    'id' : 'alt',
                     'nonterminal' : 'expr'
                 }
             ],
-            'nonterminal' : 'expr'
-        },
-        'let' : {
-            'grammar' : [
+            'let' : [
                 {'type' : 'token', 'text' : 'let'},
                 {
                     'type' : 'nonterminal',
-                    'id' : 'pattern',
                     'nonterminal' : 'pattern'
                 },
                 {'type' : 'token', 'text' : 'in'},
                 {'type' : 'newline'},
                 {
                     'type' : 'nonterminal',
-                    'id' : 'body',
                     'nonterminal' : 'expr'
                 }
             ],
-            'nonterminal' : 'expr'
-        },
-        'letRec' : {
-            'grammar' : [
+            'letRec' : [
                 {'type' : 'token', 'text' : 'let rec'},
                 {
                     'type' : 'nonterminal',
-                    'id' : 'pattern',
                     'nonterminal' : 'pattern'
                 },
                 {'type' : 'token', 'text' : 'in'},
                 {'type' : 'newline'},
                 {
                     'type' : 'nonterminal',
-                    'id' : 'body',
                     'nonterminal' : 'expr'
                 }
             ],
-            'nonterminal' : 'expr'
-        },
-       'match' : {
-            'grammar' : [
+            'match' : [
                 {'type' : 'token', 'text' : 'match'},
                 {
                     'type' : 'nonterminal',
-                    'id' : 'test',
                     'nonterminal' : 'expr'
                 },
                 {'type' : 'token', 'text' : 'with'},
-                {'type' : 'variadic', 'id' : 'cases', 'grammar' : [
-                    {
-                        'type' : 'nonterminal',
-                        'id' : 'pattern',
-                        'nonterminal' : 'pattern'
-                    },
-                    {'type' : 'token', 'text' : '->'},
-                    {
-                        'type' : 'nonterminal',
-                        'id' : 'cons',
-                        'nonterminal' : 'expr'
-                    }
-                ]}
+                {'type' : 'newline'},
+                {'type' : 'token', 'text' : '  '},
+                {
+                    'type' : 'nonterminal',
+                    'nonterminal' : 'case'
+                }
             ],
-            'nonterminal' : 'expr'
+            'seq' : [
+                {
+                    'type' : 'nonterminal',
+                    'nonterminal' : 'expr'
+                },
+                {'type' : 'token', 'text' : ';'},
+                {'type' : 'newline'},
+                {
+                    'type' : 'nonterminal',
+                    'nonterminal' : 'expr'
+                }
+            ]
         },
-        'tuple' : {
-            'grammar' : [
-                {'type' : 'token', 'text' : '('},
-                {'type' : 'variadic', 'grammar' : [
-                    {
-                        'type' : 'nonterminal',
-                        'id' : 'expr',
-                        'nonterminal' : 'expr'
-                    }
-                ]},
-                {'type' : 'token', 'text' : ')'}
+        'binding' : {
+            'binding' : [
+                {
+                    'type' : 'nonterminal',
+                    'nonterminal' : 'pattern'
+                },
+                {'type' : 'token', 'text' : '='},
+                {
+                    'type' : 'nonterminal',
+                    'nonterminal' : 'expr'
+                },
+            ]
+        },
+        'bindingList' : {
+            'cons' : [
+                {
+                    'type' : 'nonterminal',
+                    'nonterminal' : 'binding'
+                },
+                {'type' : 'token', 'text' : 'and'},
+                {'type' : 'newline'},
+                {
+                    'type' : 'nonterminal',
+                    'nonterminal' : 'bindingList'
+                }
             ],
-            'nonterminal' : 'expr'
+            'nil' : [
+                {'type' : 'token', 'text' : 'empty binding group'}
+            ]
+        },
+        'case' : {
+            'case' : [
+                {
+                    'type' : 'nonterminal',
+                    'nonterminal' : 'pattern'
+                },
+                {'type' : 'token', 'text' : '=>'},
+                {
+                    'type' : 'nonterminal',
+                    'nonterminal' : 'expr'
+                }
+            ],
+            'caseIf' : [
+                {
+                    'type' : 'nonterminal',
+                    'nonterminal' : 'pattern'
+                },
+                {'type' : 'token', 'text' : 'if'},
+                {
+                    'type' : 'nonterminal',
+                    'nonterminal' : 'expr'
+                },
+                {'type' : 'token', 'text' : '=>'},
+                {
+                    'type' : 'nonterminal',
+                    'nonterminal' : 'expr'
+                }
+            ],
+        },
+        'caseList' : {
+            'cons' : [
+                {
+                    'type' : 'nonterminal',
+                    'nonterminal' : 'case'
+                },
+                {'type' : 'token', 'text' : ','},
+                {'type' : 'newline'},
+                {
+                    'type' : 'nonterminal',
+                    'nonterminal' : 'caseList'
+                }
+            ],
+            'nil' : [
+                {'type' : 'token', 'text' : 'empty case list'}
+            ]
         }
     }
 };

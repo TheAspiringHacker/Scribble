@@ -20,16 +20,24 @@
   <script src='editor/b-exp.js'></script>
   <script src='editor/spec.js'></script>
   <script>
-    editor = new Bexp.Editor(document.getElementById('editor'), spec);
-    block = editor.newBlock('if', []);
-    //editor.addScript(block, 2, 2);
-    block2 = editor.newBlock('if', [block]);
-    editor.addScript(block2, 250, 250);
-    block3 = editor.newBlock('apply', []);
-    editor.addScript(block3, 200, 200);
-    block4 = editor.newBlock('let', []);
-    editor.addScript(block4, 170, 170);
-    block5 = editor.newBlock('letRec', []);
-    editor.addScript(block5, 2, 5);
+    var editor = new Bexp.Editor(document.getElementById('editor'), SPEC);
+    var block1 = editor.newBlock('binding', 'binding', []);
+    var block2 = editor.newBlock('bindingList', 'nil', []);
+    var block3 = editor.newBlock('bindingList', 'cons', [block1, block2]);
+    var block4 = editor.newBlock('binding', 'binding', []);
+    var block5 = editor.newBlock('bindingList', 'cons', [block4, block3]);
+    var block6 = editor.newBlock('expr', 'if', [])
+    var block7 = editor.newBlock('expr', 'letRec', [block5, block6]);
+    var block8 = editor.newBlock('case', 'case', []);
+    var block9 = editor.newBlock('case', 'caseIf', []);
+    var block10 = editor.newBlock('caseList', 'nil', []);
+    var block11 = editor.newBlock('caseList', 'cons', [block9, block10]);
+    var block12 = editor.newBlock('caseList', 'cons', [block8, block11]);
+    var block13 = editor.newBlock('expr', 'match', [null, block12]);
+    var block14 = editor.newBlock('expr', 'seq', []);
+    var block15 = editor.newBlock('expr', 'seq', [null, block14]);
+    editor.addScript(block7, 2, 5);
+    editor.addScript(block13, 100, 100);
+    editor.addScript(block15, 200, 100);
   </script>
 </body>

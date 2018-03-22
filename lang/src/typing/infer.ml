@@ -331,7 +331,7 @@ let rec ast_of_expr st {node; ty; ann} =
                                | Typed_tree.Char c -> Ast.Char c
                                | Typed_tree.Float f -> Ast.Float f
                                | Typed_tree.Int i -> Ast.Int i
-                              end
+                               end
                | EMat(test, cases) ->
                   Ast.EMat(ast_of_expr st test, List.map (ast_of_case st) cases)
                | EVar ident -> Ast.EVar ident

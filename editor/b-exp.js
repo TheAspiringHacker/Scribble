@@ -70,8 +70,8 @@ const Bexp = (function(window, document) {
         this.holes = new Set();
         this.dragged = null;
     };
-    Editor.prototype.newBlock = function(opcode, children) {
-        return new Bexp.BlockExpr(this, opcode, children);
+    Editor.prototype.newBlock = function(nonterminal, production, children) {
+        return new Bexp.BlockExpr(this, nonterminal, production, children);
     };
     Editor.prototype.addScript = function(script, x, y) {
         script.transform.translation.x = x;
@@ -134,11 +134,12 @@ const Bexp = (function(window, document) {
         this.rect.setAttributeNS(null, 'fill', '#ccb71e');
     };
 
-    var BlockExpr = function(editor, opcode, args, index) {
+    var BlockExpr = function(editor, nonterminal, production, args, index) {
         SVGSprite.Sprite.call(this, document.createElementNS(Bexp.svgNS, 'g'));
         this.editor = editor;
-        this.opcode = opcode;
-        this.op = editor.spec.blocks[opcode];
+        this.nonterminal = nonterminal;
+        this.production = production;
+        this.grammar = editor.spec.nonterminals[nonterminal][production];
         this.args = args;
         this.index = index || -1;
         this.rect = document.createElementNS(Bexp.svgNS, 'rect');
@@ -154,17 +155,21 @@ const Bexp = (function(window, document) {
 
         (function(self) {
             var argIdx = 0;
-            for(var i = 0; i < self.op.grammar.length; ++i) {
-                switch(self.op.grammar[i].type) {
+            for(var i = 0; i < self.grammar.length; ++i) {
+                switch(self.grammar[i].type) {
                 case 'token':
-                    var text = new SVGSprite.Text(self.op.grammar[i].text);
+                    var text = new SVGSprite.Text(self.grammar[i].text);
                     text.setFill('white');
                     self.appendChild(text);
                     break;
                 case 'nonterminal':
                     if(argIdx < self.args.length) {
-                        self.args[argIdx].index = argIdx;
-                        self.appendChild(self.args[argIdx]);
+                        if(self.args[argIdx] == null) {
+                            self.appendChild(new Hole(self, argIdx));
+                        } else {
+                            self.args[argIdx].index = argIdx;
+                            self.appendChild(self.args[argIdx]);
+                        }
                     } else {
                         self.args.push(null);
                         self.appendChild(new Hole(self, argIdx));
@@ -191,32 +196,32 @@ const Bexp = (function(window, document) {
     };
     BlockExpr.prototype.updateSVG = function() {
         var rowWidth = this.editor.SPACING;
-        var largestWidth = this.editor.SPACING;
+        var largestWidth = 0;
         var nonterminalIdx = 0;
         var oldWidth = this.width();
         var oldHeight = this.height();
         this.newlines = 0;
         var iter = this.childNodes[Symbol.iterator]();
-        for(var i = 0; i < this.op.grammar.length; ++i) {
+        for(var i = 0; i < this.grammar.length; ++i) {
             // This if statement is put first and has a continue because
             // newline items in the grammar don't correspond with any graphics
             // widget / object / sprite, so next should not be called on iter!
             // If you think that this design is dirty and that I should make a
             // dummy newline object or something, please let me know in a PR!
-            if(this.op.grammar[i].type == 'newline') {
+            if(this.grammar[i].type == 'newline') {
                 if(rowWidth > largestWidth) {
                     largestWidth = rowWidth;
                 }
-                rowWidth = this.editor.SPACING;
+                rowWidth = 0;
                 ++this.newlines;
                 continue;
             }
             var child = iter.next().value;
             var offset = this.newlines * this.editor.BLOCK_HEIGHT;
-            if(this.op.grammar[i].type == 'token') {
+            if(this.grammar[i].type == 'token') {
                 child.transform.translation = {x: rowWidth, y: offset + 17};
                 rowWidth += child.width() + this.editor.SPACING;
-            } else if(this.op.grammar[i].type == 'nonterminal') {
+            } else if(this.grammar[i].type == 'nonterminal') {
                 child.transform.translation.x = rowWidth;
                 child.transform.translation.y = offset;
                 rowWidth += child.width() + this.editor.SPACING;
