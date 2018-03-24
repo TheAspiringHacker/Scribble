@@ -8,7 +8,7 @@ in your browser to test the editor.
 
 The language is implemented in OCaml and requires Dune to build.
 
-Run `jbuilder runtest to run the tests`.
+Run `jbuilder runtest` to run the tests.
 
 ## Deploying
 The repository is hosted on GitHub for development, but on GitLab for deployment
