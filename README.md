@@ -12,6 +12,12 @@ Run `oasis setup` in the `lang` directory to generate a
 Makefile. Then, run `make`. Make sure to use the latest version of the OCaml
 compiler!
 
+## Deploying
+The repository is hosted on GitHub for development, but on GitLab for deployment
+because of GitLab CI, which supports GitLab Pages. To push to GitLab, run
+
+    git push gitlab
+
 ## Licensing
 This software is licensed under the GNU GPLv3. The files under the `lang`
 subdirectory are additionally licensed under the MIT (Expat) license.
