@@ -6,11 +6,9 @@ Scribble is still a work in progress, but it will be a block-based functional
 The editor is implemented in vanilla JavaScript. Navigate to `editor/index.html`
 in your browser to test the editor.
 
-The language is implemented in OCaml and requires Oasis to build.
+The language is implemented in OCaml and requires Dune to build.
 
-Run `oasis setup` in the `lang` directory to generate a
-Makefile. Then, run `make`. Make sure to use the latest version of the OCaml
-compiler!
+Run `jbuilder runtest to run the tests`.
 
 ## Deploying
 The repository is hosted on GitHub for development, but on GitLab for deployment
