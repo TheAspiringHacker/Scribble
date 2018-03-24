@@ -9,7 +9,8 @@ in your browser to test the editor.
 The language is implemented in OCaml and requires Oasis to build.
 
 Run `oasis setup` in the `lang` directory to generate a
-Makefile. Then, run `make`.
+Makefile. Then, run `make`. Make sure to use the latest version of the OCaml
+compiler!
 
 ## Licensing
 This software is licensed under the GNU GPLv3. The files under the `lang`
