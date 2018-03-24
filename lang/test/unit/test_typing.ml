@@ -1,4 +1,5 @@
 open Typeck_types
+open Util
 
 let () = print_endline "Begin typing test."
 
