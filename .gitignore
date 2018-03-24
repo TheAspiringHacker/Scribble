@@ -67,3 +67,4 @@ setup*
 *.txt
 *.mllib
 *.mldylib
+*.merlin

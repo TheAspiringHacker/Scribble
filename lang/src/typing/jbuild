@@ -1,0 +1,7 @@
+(jbuild_version 1)
+
+(library
+  ((name typing)
+   (wrapped false)
+   (libraries (util core))
+  ))

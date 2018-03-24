@@ -1,0 +1,21 @@
+(jbuild_version 1)
+
+(executable
+  ((name test_util)
+   (modules (test_util))
+   (libraries (util))
+))
+
+(executable
+  ((name test_typing)
+   (modules (test_typing))
+   (libraries (typing))
+))
+
+(alias
+  ((name runtest)
+   (deps (test_typing.exe test_util.exe))
+   (action (progn
+            (run ./test_util.exe)
+            (run ./test_typing.exe)))
+))
