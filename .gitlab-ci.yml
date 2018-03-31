@@ -1,8 +1,8 @@
 before_script:
   - apt-get update -qq && apt-get install -y -qq opam
   - opam init -y -q
-  - eval `opam config env`
   - opam switch -q -y 4.06.1
+  - eval `opam config env`
   - opam update
   - opam install -y -q jbuilder
   - opam install -y -q js_of_ocaml
