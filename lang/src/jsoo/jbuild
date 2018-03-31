@@ -1,0 +1,6 @@
+(jbuild_version 1)
+
+(executable
+  ((name compiler)
+   (libraries (util js_of_ocaml))
+))
