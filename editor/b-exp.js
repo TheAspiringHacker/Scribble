@@ -43,23 +43,16 @@ const Bexp = (function(window, document) {
         this.scriptArea.setAttribute('id', 'scripts');
         this.rootElement.appendChild(this.scriptArea);
 
-        /*
-         The palette, scriptLayer, and dragLayer are all CHILDREN of sprite!
-         dragLayer is ABOVE palette and scriptLayer
-         When transferring scripts between scriptLayer and dragLayer, the
-         position must be offset by the width of the palette!
-         */
         this.sprite =
             new SVGSprite.Sprite(document.createElementNS(Bexp.svgNS, 'svg'));
         this.palette = new Bexp.Palette(this);
         this.scriptLayer =
             new SVGSprite.Sprite(document.createElementNS(Bexp.svgNS, 'svg'));
         this.scriptLayer.graphics.setAttributeNS(null, 'overflow', 'scroll');
-        this.scriptLayer.transform.translation.x = this.palette.width();
         this.dragLayer =
             new SVGSprite.Sprite(document.createElementNS(Bexp.svgNS, 'g'));
         this.sprite.appendChild(this.scriptLayer);
-        this.sprite.appendChild(this.palette);
+        this.scriptLayer.appendChild(this.palette);
         this.sprite.appendChild(this.dragLayer);
         this.sprite.graphics.setAttributeNS(null, 'id', 'main-svg');
         this.sprite.graphics.setAttributeNS(null, 'width', '100%');
@@ -75,7 +68,7 @@ const Bexp = (function(window, document) {
         return new Bexp.BlockExpr(this, nonterminal, production, children);
     };
     Editor.prototype.addScript = function(script, x, y) {
-        script.transform.translation.x = x;
+        script.transform.translation.x = x + this.palette.width();
         script.transform.translation.y = y;
         this.scriptLayer.appendChild(script);
         script.render();
@@ -340,9 +333,7 @@ const Bexp = (function(window, document) {
             document.removeEventListener('mouseup', this);
             this.editor.dragLayer.removeChild(this);
             if(this.dropTarget === null) {
-                this.transform.translation.x -=
-                    this.editor.scriptLayer.transform.translation.x;
-                if(this.transform.translation.x < 0) {
+                if(this.transform.translation.x < this.editor.palette.width()) {
                     this.editor.scripts.delete(this);
                 } else {
                     this.editor.scriptLayer.appendChild(this);
