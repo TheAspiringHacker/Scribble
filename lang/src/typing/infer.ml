@@ -91,15 +91,15 @@ let rec unify subst = function
      | Unbound{level; _} ->
         begin match occurs_check subst id level ty with
         | Some subst -> Ok (Subst.add id (Link ty) subst)
-        | None -> Err(Recursive_unification(id, ty))
+        | None -> Error (Recursive_unification(id, ty))
         end
      | Link ty1 -> unify subst (ty, ty1)
-     | Quantified _ -> Err (Cannot_unify(TVar id, ty))
+     | Quantified _ -> Error (Cannot_unify(TVar id, ty))
      end
   | (TApp(t0, t1), TApp(t2, t3)) ->
      unify subst (t0, t2) >>= fun subst -> unify subst (t1, t3)
   | (TCon c0, TCon c1) when c0 = c1 -> Ok subst
-  | (t0, t1) -> Err (Cannot_unify(t0, t1))
+  | (t0, t1) -> Error (Cannot_unify(t0, t1))
 
 (** Turns a monotype into a polytype by quantifying over free tvars *)
 let generalize st monotype =
@@ -172,7 +172,7 @@ let rec walk_pattern st (node, ann) =
      | Some env ->
         st.env <- env;
         Ok {node = PVar(id, poly); ty = TVar tvar; ann = ann}
-     | None -> Err(Already_defined (Local id))
+     | None -> Error (Already_defined (Local id))
      end
   | Pretyped_tree.PPair(fst, snd) ->
       walk_pattern st fst >>= fun fst ->
@@ -249,7 +249,7 @@ let rec gen_constraints st (node, ann) =
      | Some scheme ->
         let ty = instantiate st scheme in
         Ok {node = EVar id; ty = ty; ann = ann}
-     | None -> Err(Unbound_variable id)
+     | None -> Error (Unbound_variable id)
 
 and constrain_binding st = function
   | ((Pretyped_tree.PVar id, pann), expr) ->
@@ -266,15 +266,15 @@ and constrain_binding st = function
      | Some env ->
         st.env <- env;
         let pat = {node = PVar(id, scheme); ty = expr.ty; ann = pann} in
-        Ok(pat, expr)
-     | None -> Err(Already_defined (Local id))
+        Ok (pat, expr)
+     | None -> Error (Already_defined (Local id))
      end
   | (pat, expr) ->
      (* Monomorphism restriction occurs in this branch *)
      walk_pattern st pat >>= fun pat ->
      gen_constraints st expr >>= fun expr ->
      st.constraints <- Unify(pat.ty, expr.ty)::st.constraints;
-     Ok(pat, expr)
+     Ok (pat, expr)
 
 (** Kind to kind *)
 let rec ast_of_kind = function

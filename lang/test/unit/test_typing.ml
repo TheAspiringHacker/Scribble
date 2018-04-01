@@ -9,10 +9,10 @@ let () =
   let open Typeck_types in
   begin
       assert(unify Subst.empty (TCon TBool, TCon TInt)
-             = Err(Cannot_unify(TCon TBool, TCon TInt)));
+             = Error (Cannot_unify(TCon TBool, TCon TInt)));
       begin match unify Subst.empty (TCon TBool, TCon TBool) with
       | Ok x -> assert (compare x Subst.empty = 0)
-      | Err err -> assert(false)
+      | Error err -> assert(false)
       end;
       let subst = Subst.singleton 0 (Unbound{kind = KStar; level = 0}) in
       begin match unify subst (TVar 0, TCon TInt) with

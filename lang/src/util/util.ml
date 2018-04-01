@@ -28,8 +28,8 @@ module Identity : MONAD with type 'a t = 'a = struct
   let return x = x
 end
 
-module OptionT (M : MONAD) : MONAD with type 'a t = ('a option) M.t = struct
-  type 'a t = ('a option) M.t
+module OptionT (M : MONAD) : MONAD with type 'a t = 'a option M.t = struct
+  type 'a t = 'a option M.t
 
   let map (f : 'a -> 'b) (m : 'a t) =
     M.map (fun option ->
@@ -58,18 +58,16 @@ end
 
 module Option = OptionT(Identity)
 
-type ('a, 'b) result = Err of 'a | Ok of 'b
-
 module ResultT (M : MONAD) (X : sig
   type t
-end) : MONAD with type 'a t = ((X.t, 'a) result) M.t = struct
-  type 'a t = ((X.t, 'a) result) M.t
+end) : MONAD with type 'a t = ('a, X.t) result M.t = struct
+  type 'a t = ('a, X.t) result M.t
 
-  let map f m =
+  let map (f : 'a -> 'b) (m : 'a t) =
     M.map (fun result ->
       match result with
       | Ok x -> Ok (f x)
-      | Err err -> Err err) m
+      | Error err -> Error err) m
 
   let (<$>) = map
 
@@ -80,13 +78,13 @@ end) : MONAD with type 'a t = ((X.t, 'a) result) M.t = struct
            M.map (fun x_res ->
                match x_res with
                | Ok x -> Ok (f x)
-               | Err err -> Err err) m
-        | Err err -> M.return @@ Err err)
+               | Error err -> Error err) m
+        | Error err -> M.return @@ Error err)
 
   let (>>=) m f = m $<M.(>>=)>$ fun result ->
     match result with
     | Ok x -> f x
-    | Err err -> M.return @@ Err err
+    | Error err -> M.return @@ Error err
   let return x = M.return @@ Ok x
 end
 
