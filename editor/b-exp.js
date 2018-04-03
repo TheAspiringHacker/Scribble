@@ -79,6 +79,7 @@ const Bexp = (function(window, document) {
 
     var Palette = function(owner) {
         SVGSprite.Sprite.call(this,document.createElementNS(Bexp.svgNS, 'svg'));
+        this.editor = owner;
         this.rect = document.createElementNS(Bexp.svgNS, 'rect');
         this.rect.setAttributeNS(null, 'fill', '#e0e0e0')
         this.rect.setAttributeNS(null, 'width', '200');
@@ -252,111 +253,117 @@ const Bexp = (function(window, document) {
         this.removeChild(block);
     };
 
+    BlockExpr.prototype.mousedownEvent = function(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        document.addEventListener('mousemove', this);
+        document.addEventListener('mouseup', this);
+        var layer = this.parentNode;
+        // A sprite's coordinates are relative to its parent's.
+        // We need to make it relative to the scripting area.
+        while(layer !== this.editor.sprite) {
+            this.transform.translation.x += layer.transform.translation.x;
+            this.transform.translation.y += layer.transform.translation.y;
+            layer = layer.parentNode;
+        }
+        var oldParent = this.parentNode;
+        if(this.parentNode === this.editor.scriptLayer) {
+            this.parentNode.removeChild(this);
+        } else {
+            this.parentNode.clearArg(this);
+        }
+        this.editor.dragLayer.appendChild(this);
+        this.editor.dragged = this;
+        this.startDrag(event.pageX, event.pageY);
+        this.render();
+        oldParent.render();
+
+        // Thanks NickyNouse on Scratch for the cache solution
+        // https://scratch.mit.edu/discuss/topic/283813/?page=2#post-2928778
+        for(hole of this.editor.holes) {
+            hole.cachedDragData = {
+                pos: {
+                    x: hole.transform.translation.x,
+                    y: hole.transform.translation.y
+                },
+                isDragged: false
+            };
+            var node = hole.owner;
+            while(node !== this.editor.sprite) {
+                if(node === this) {
+                    hole.cachedDragData.isDragged = true;
+                    break;
+                }
+                hole.cachedDragData.pos.x += node.transform.translation.x;
+                hole.cachedDragData.pos.y += node.transform.translation.y;
+                node = node.parentNode;
+            }
+        }
+    };
+
+    BlockExpr.prototype.mousemoveEvent = function(event) {
+        this.updateDrag(event.pageX, event.pageY);
+        var oldHole = this.dropTarget;
+        var shortestDist = 20;
+        this.dropTarget = null;
+        for(hole of this.editor.holes) {
+            if(!hole.cachedDragData.isDragged) {
+                var dist = Util.distance(hole.cachedDragData.pos,
+                                         this.transform.translation);
+                if(dist < shortestDist) {
+                    shortestDist = dist;
+                    this.dropTarget = hole;
+                }
+            }
+        }
+        if(oldHole !== this.dropTarget) {
+            if(oldHole !== null) {
+                oldHole.unhighlight();
+                oldHole.render();
+            }
+            if(this.dropTarget !== null) {
+                this.dropTarget.highlight();
+                this.dropTarget.render();
+            }
+        }
+        this.render();
+    };
+
+    BlockExpr.prototype.mouseupEvent = function(event) {
+        document.removeEventListener('mousemove', this);
+        document.removeEventListener('mouseup', this);
+        this.editor.dragLayer.removeChild(this);
+        if(this.dropTarget === null) {
+            if(this.transform.translation.x < this.editor.palette.width()) {
+                this.editor.scripts.delete(this);
+            } else {
+                this.editor.scriptLayer.appendChild(this);
+                this.render();
+            }
+        } else {
+            this.dropTarget.replaceWith(this);
+            if(this.parentNode !== this.dropTarget.owner) {
+                console.log('Assertion failed!');
+            }
+            this.parentNode.render();
+                this.dropTarget = null;
+        }
+        this.editor.dragged = null;
+        this.stopDrag();
+    };
+
     BlockExpr.prototype.handleEvent = function(event) {
         switch(event.type) {
         case 'mousedown':
-            event.preventDefault();
-            event.stopPropagation();
-            document.addEventListener('mousemove', this);
-            document.addEventListener('mouseup', this);
-            var layer = this.parentNode;
-            // A sprite's coordinates are relative to its parent's.
-            // We need to make it relative to the scripting area.
-            while(layer !== this.editor.sprite) {
-                this.transform.translation.x += layer.transform.translation.x;
-                this.transform.translation.y += layer.transform.translation.y;
-                layer = layer.parentNode;
-            }
-            var oldParent = this.parentNode;
-            if(this.parentNode === this.editor.scriptLayer) {
-                this.parentNode.removeChild(this);
-            } else {
-                this.parentNode.clearArg(this);
-            }
-            this.editor.dragLayer.appendChild(this);
-            this.editor.dragged = this;
-            this.startDrag(event.pageX, event.pageY);
-            this.render();
-            oldParent.render();
-
-            // Thanks NickyNouse on Scratch for the cache solution
-            // https://scratch.mit.edu/discuss/topic/283813/?page=2#post-2928778
-            for(hole of this.editor.holes) {
-                hole.cachedDragData = {
-                    pos: {
-                        x: hole.transform.translation.x,
-                        y: hole.transform.translation.y
-                    },
-                    isDragged: false
-                };
-                var node = hole.owner;
-                while(node !== this.editor.sprite) {
-                    if(node === this) {
-                        hole.cachedDragData.isDragged = true;
-                        break;
-                    }
-                    hole.cachedDragData.pos.x += node.transform.translation.x;
-                    hole.cachedDragData.pos.y += node.transform.translation.y;
-                    node = node.parentNode;
-                }
-            }
+            this.mousedownEvent(event);
             break;
         case 'mousemove':
-            this.updateDrag(event.pageX, event.pageY);
-            var oldHole = this.dropTarget;
-            var shortestDist = 20;
-            this.dropTarget = null;
-            for(hole of this.editor.holes) {
-                if(!hole.cachedDragData.isDragged) {
-                    var dist = Util.distance(hole.cachedDragData.pos,
-                                             this.transform.translation);
-                    if(dist < shortestDist) {
-                        shortestDist = dist;
-                        this.dropTarget = hole;
-                    }
-                }
-            }
-            if(oldHole !== this.dropTarget) {
-                if(oldHole !== null) {
-                    oldHole.unhighlight();
-                    oldHole.render();
-                }
-                if(this.dropTarget !== null) {
-                    this.dropTarget.highlight();
-                    this.dropTarget.render();
-                }
-            }
-            this.render();
+            this.mousemoveEvent(event);
             break;
         case 'mouseup':
-            document.removeEventListener('mousemove', this);
-            document.removeEventListener('mouseup', this);
-            this.editor.dragLayer.removeChild(this);
-            if(this.dropTarget === null) {
-                if(this.transform.translation.x < this.editor.palette.width()) {
-                    this.editor.scripts.delete(this);
-                } else {
-                    this.editor.scriptLayer.appendChild(this);
-                    this.render();
-                }
-            } else {
-                this.dropTarget.replaceWith(this);
-                if(this.parentNode !== this.dropTarget.owner) {
-                    console.log('Assertion failed!');
-                }
-                this.parentNode.render();
-                this.dropTarget = null;
-            }
-            this.editor.dragged = null;
-            this.stopDrag();
+            this.mouseupEvent(event);
             break;
         }
-    };
-    BlockExpr.prototype.emit = function() {
-        return {
-            opcode : this.opcode,
-            args : this.args.map(x => x == null ? null : x.emit())
-        };
     };
 
     return {
