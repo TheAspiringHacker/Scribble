@@ -22,6 +22,9 @@
   <script src='../lang/_build/4.06.1/src/jsoo/compiler.bc.js'></script>
   <script>
     var editor = new Bexp.Editor(document.getElementById('editor'), SPEC);
+    editor.palette.appendChild(
+        new Bexp.BlockTemplate(editor, "expr", "letRec")
+    );
     var block1 = editor.newBlock('bindingList', 'nil', []);
     var block2 = editor.newBlock('bindingList', 'cons', [null, null, block1]);
     var block3 = editor.newBlock('bindingList', 'cons', [null, null, block2]);
@@ -35,8 +38,8 @@
     var block11 = editor.newBlock('expr', 'match', [null, block10]);
     var block12 = editor.newBlock('expr', 'seq', []);
     var block13 = editor.newBlock('expr', 'seq', [null, block12]);
-    editor.addScript(block5, 2, 5);
-    editor.addScript(block11, 100, 100);
-    editor.addScript(block13, 200, 100);
+    editor.addScript(block5, 202, 5);
+    editor.addScript(block11, 300, 100);
+    editor.addScript(block13, 400, 100);
   </script>
 </body>

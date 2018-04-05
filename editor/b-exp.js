@@ -68,7 +68,7 @@ const Bexp = (function(window, document) {
         return new Bexp.BlockExpr(this, nonterminal, production, children);
     };
     Editor.prototype.addScript = function(script, x, y) {
-        script.transform.translation.x = x + this.palette.width();
+        script.transform.translation.x = x;
         script.transform.translation.y = y;
         this.scriptLayer.appendChild(script);
         script.render();
@@ -129,13 +129,13 @@ const Bexp = (function(window, document) {
         this.rect.setAttributeNS(null, 'fill', '#ccb71e');
     };
 
-    var BlockExpr = function(editor, nonterminal, production, args, index) {
+    var Block = function(editor, nonterminal, production, args, index) {
         SVGSprite.Sprite.call(this, document.createElementNS(Bexp.svgNS, 'g'));
         this.editor = editor;
         this.nonterminal = nonterminal;
         this.production = production;
         this.grammar = editor.spec.nonterminals[nonterminal][production];
-        this.args = args;
+        this.args = args || [];
         this.index = index || -1;
         this.rect = document.createElementNS(Bexp.svgNS, 'rect');
         this.rect.setAttributeNS(null, 'rx', '10');
@@ -182,15 +182,15 @@ const Bexp = (function(window, document) {
         this.graphics.addEventListener('mousedown', this);
     };
 
-    // BlockExpr extends Sprite
-    BlockExpr.prototype = Object.create(SVGSprite.Sprite.prototype);
-    BlockExpr.prototype.width = function() {
+    // Block extends Sprite
+    Block.prototype = Object.create(SVGSprite.Sprite.prototype);
+    Block.prototype.width = function() {
         return parseInt(this.rect.getAttributeNS(null, 'width'));
     };
-    BlockExpr.prototype.height = function() {
+    Block.prototype.height = function() {
         return (this.newlines + 1) * this.editor.BLOCK_HEIGHT;
     };
-    BlockExpr.prototype.updateSVG = function() {
+    Block.prototype.updateSVG = function() {
         var rowWidth = 0;
         var largestWidth = 0;
         var nonterminalIdx = 0;
@@ -247,11 +247,19 @@ const Bexp = (function(window, document) {
         }
     };
 
-    BlockExpr.prototype.clearArg = function(block) {
+    Block.prototype.clearArg = function(block) {
         this.args[block.index] = null;
         this.insertChild(new Hole(this, block.index), block);
         this.removeChild(block);
     };
+
+    Block.prototype.handleEvent = function(event) {};
+
+    var BlockExpr = function(editor, nonterminal, production, args, index) {
+        Block.call(this, editor, nonterminal, production, args, index);
+    };
+    // BlockExpr extends Block
+    BlockExpr.prototype = Object.create(Block.prototype);
 
     BlockExpr.prototype.mousedownEvent = function(event) {
         event.preventDefault();
@@ -366,10 +374,30 @@ const Bexp = (function(window, document) {
         }
     };
 
+    var BlockTemplate = function(editor, nonterminal, production, args, index) {
+        Block.call(this, editor, nonterminal, production, args, index);
+    };
+    // BlockTemplate extends Block
+    BlockTemplate.prototype = Object.create(Block.prototype);
+
+    BlockTemplate.prototype.handleEvent = function(event) {
+        switch(event.type) {
+        case 'mousedown':
+            var block = this.editor.newBlock(this.nonterminal, this.production);
+            editor.addScript(block, this.transform.translation.x,
+                             this.transform.translation.y);
+            block.handleEvent(event);
+            break;
+        default:
+            break;
+        }
+    };
+
     return {
-        svgNS : 'http://www.w3.org/2000/svg',
-        Editor : Editor,
-        BlockExpr : BlockExpr,
+        svgNS: 'http://www.w3.org/2000/svg',
+        Editor: Editor,
+        BlockExpr: BlockExpr,
+        BlockTemplate: BlockTemplate,
         Palette: Palette
     };
 })(window, document);
