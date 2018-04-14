@@ -37,6 +37,7 @@ grammar.addNonterminal('bindingList', 'Binding List')
 
     .end().addProduction('nil').dsl
         .tok('end defs')
+    ;
 
 grammar.addNonterminal('case', 'Case')
     .addProduction('case').dsl
