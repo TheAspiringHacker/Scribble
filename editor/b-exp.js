@@ -18,27 +18,14 @@
 ;'use strict';
 
 var Bexp = (function(window, document) {
-    var Editor = function(elem, translation) {
+    var Editor = function(elem, grammar) {
         this.BLOCK_HEIGHT = 25;
         this.SPACING = 5;
         this.TAB_WIDTH = 30;
         this.rootElement = elem;
+        this.grammar = grammar;
         this.sidebar = document.createElement('div');
-        this.sidebar.setAttribute('id', 'sidebar');
         this.rootElement.appendChild(this.sidebar);
-
-        var list = document.createElement('ul');
-        list.setAttribute('id', 'categories');
-        for(var i = 0; i < translation.categories.length; ++i) {
-            var div = document.createElement('div');
-            div.textContent =
-                translation.nonterminals[translation.categories[i]].name;
-            div.setAttribute('class', 'category');
-            var li = document.createElement('li');
-            li.appendChild(div);
-            list.appendChild(li);
-        }
-        this.sidebar.appendChild(list);
 
         this.scriptArea = document.createElement('div');
         this.scriptArea.setAttribute('id', 'scripts');
@@ -46,21 +33,19 @@ var Bexp = (function(window, document) {
 
         this.sprite =
             new SVGSprite.Sprite(document.createElementNS(Bexp.svgNS, 'svg'));
-        this.palette = new Bexp.Palette(this);
         this.scriptLayer =
             new SVGSprite.Sprite(document.createElementNS(Bexp.svgNS, 'svg'));
         this.scriptLayer.graphics.setAttributeNS(null, 'overflow', 'scroll');
+        this.palette = new Bexp.Palette(this, this.sidebar);
         this.dragLayer =
             new SVGSprite.Sprite(document.createElementNS(Bexp.svgNS, 'g'));
         this.sprite.appendChild(this.scriptLayer);
-        this.scriptLayer.appendChild(this.palette);
         this.sprite.appendChild(this.dragLayer);
         this.sprite.graphics.setAttributeNS(null, 'id', 'main-svg');
         this.sprite.graphics.setAttributeNS(null, 'width', '100%');
         this.sprite.graphics.setAttributeNS(null, 'height', '100%');
 
         this.scriptArea.appendChild(this.sprite.graphics);
-        this.grammar = translation;
         this.scripts = new Set();
         this.holes = new Set();
         this.dragged = null;
@@ -78,19 +63,35 @@ var Bexp = (function(window, document) {
         return this.scriptLayer.removeChild(block);
     };
 
-    var Palette = function(owner) {
-        SVGSprite.Sprite.call(this,document.createElementNS(Bexp.svgNS, 'svg'));
+    var Palette = function(owner, sidebar) {
+        this.sprite = new SVGSprite.Sprite(
+            document.createElementNS(Bexp.svgNS, 'svg')
+        );
         this.editor = owner;
+        this.sidebar = sidebar;
+        this.sidebar.setAttribute('id', 'sidebar');
         this.rect = document.createElementNS(Bexp.svgNS, 'rect');
         this.rect.setAttributeNS(null, 'fill', '#e0e0e0')
         this.rect.setAttributeNS(null, 'width', '200');
         this.rect.setAttributeNS(null, 'height', '1000');
-        this.graphics.setAttributeNS(null, 'overflow', 'scroll');
-        this.graphics.setAttributeNS(null, 'height', '2000');
-        this.graphics.setAttributeNS(null, 'width', '200');
-        this.graphics.appendChild(this.rect);
+        this.sprite.graphics.setAttributeNS(null, 'overflow', 'scroll');
+        this.sprite.graphics.setAttributeNS(null, 'height', '2000');
+        this.sprite.graphics.setAttributeNS(null, 'width', '200');
+        this.sprite.graphics.appendChild(this.rect);
+
+        var ul = document.createElement('ul');
+        ul.setAttribute('id', 'categories');
+        for(const category of this.editor.grammar.categories) {
+            var div = document.createElement('div');
+            div.textContent = this.editor.grammar.nonterminals[category].name;
+            div.setAttribute('class', 'category');
+            var li = document.createElement('li');
+            li.appendChild(div);
+            ul.appendChild(li);
+        }
+        this.sidebar.appendChild(ul);
+        this.editor.scriptLayer.appendChild(this.sprite);
     };
-    Palette.prototype = Object.create(SVGSprite.Sprite.prototype);
 
     var Hole = function(owner, index) {
         SVGSprite.Sprite.call(this, document.createElementNS(Bexp.svgNS, 'g'));
@@ -345,7 +346,8 @@ var Bexp = (function(window, document) {
         document.removeEventListener('mouseup', this);
         this.editor.dragLayer.removeChild(this);
         if(this.dropTarget === null) {
-            if(this.transform.translation.x < this.editor.palette.width()) {
+            if(this.transform.translation.x
+               < this.editor.palette.sprite.width()) {
                 this.editor.scripts.delete(this);
             } else {
                 this.editor.scriptLayer.appendChild(this);

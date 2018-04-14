@@ -24,7 +24,7 @@
   <script>
     var editor = new Bexp.Editor(document.getElementById('editor'),
     Bexp.Translations['eng-us']);
-    editor.palette.appendChild(
+    editor.palette.sprite.appendChild(
         new Bexp.BlockTemplate(editor, 'expr', 'letRec')
     );
     var block1 = editor.newBlock('bindingList', 'nil', []);

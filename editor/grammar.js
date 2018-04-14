@@ -15,16 +15,16 @@ Bexp.Grammar = (function(window, document) {
         this.nonterminals = {};
     };
 
-    Grammar.prototype.addNonterminal = function(op, pubName) {
-        var nonterminal = new Bexp.Grammar.Nonterminal(op, pubName, {});
-        this.nonterminals[op] = nonterminal;
-        this.categories.push(op);
+    Grammar.prototype.addNonterminal = function(id, name) {
+        var nonterminal = new Bexp.Grammar.Nonterminal(id, name, {});
+        this.nonterminals[id] = nonterminal;
+        this.categories.push(id);
         return nonterminal;
     };
 
-    var Nonterminal = function(op, pubName, productions) {
-        this.id = op;
-        this.name = pubName;
+    var Nonterminal = function(id, name, productions) {
+        this.id = id;
+        this.name = name;
         this.productions = productions;
     };
 
