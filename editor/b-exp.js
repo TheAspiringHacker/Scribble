@@ -152,26 +152,26 @@ var Bexp = (function(window, document) {
         this.dropTarget = null;
         this.newlines = 0;
 
-        (function(self) {
+        (function() {
             var argIdx = 0;
-            for(var i = 0; i < self.symbols.length; ++i) {
-                switch(self.symbols[i].type) {
+            for(var i = 0; i < this.symbols.length; ++i) {
+                switch(this.symbols[i].type) {
                 case 'token':
-                    var text = new SVGSprite.Text(self.symbols[i].text);
+                    var text = new SVGSprite.Text(this.symbols[i].text);
                     text.setFill('white');
-                    self.appendChild(text);
+                    this.appendChild(text);
                     break;
                 case 'nonterminal':
-                    if(argIdx < self.args.length) {
-                        if(self.args[argIdx] == null) {
-                            self.appendChild(new Hole(self, argIdx));
+                    if(argIdx < this.args.length) {
+                        if(this.args[argIdx] == null) {
+                            this.appendChild(new Hole(this, argIdx));
                         } else {
-                            self.args[argIdx].index = argIdx;
-                            self.appendChild(self.args[argIdx]);
+                            this.args[argIdx].index = argIdx;
+                            this.appendChild(this.args[argIdx]);
                         }
                     } else {
-                        self.args.push(null);
-                        self.appendChild(new Hole(self, argIdx));
+                        this.args.push(null);
+                        this.appendChild(new Hole(this, argIdx));
                     }
                     ++argIdx;
                     break;
@@ -179,10 +179,10 @@ var Bexp = (function(window, document) {
                 case 'tab':
                     break;
                 default:
-                    console.error(self.symbols[i].type + ' not a case');
+                    console.error(this.symbols[i].type + ' not a case');
                 }
             }
-        })(this);
+        }).call(this);
         this.graphics.addEventListener('mousedown', this);
     };
 
