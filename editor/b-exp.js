@@ -29,9 +29,10 @@ var Bexp = (function(window, document) {
 
         var list = document.createElement('ul');
         list.setAttribute('id', 'categories');
-        for(var i = 0; i < translation.categories; ++i) {
+        for(var i = 0; i < translation.categories.length; ++i) {
             var div = document.createElement('div');
-            div.textContent = spec.categories[i].id;
+            div.textContent =
+                translation.nonterminals[translation.categories[i]].name;
             div.setAttribute('class', 'category');
             var li = document.createElement('li');
             li.appendChild(div);

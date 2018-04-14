@@ -18,12 +18,13 @@ Bexp.Grammar = (function(window, document) {
     Grammar.prototype.addNonterminal = function(op, pubName) {
         var nonterminal = new Bexp.Grammar.Nonterminal(op, pubName, {});
         this.nonterminals[op] = nonterminal;
+        this.categories.push(op);
         return nonterminal;
     };
 
     var Nonterminal = function(op, pubName, productions) {
-        this.op = op;
-        this.pubName = pubName;
+        this.id = op;
+        this.name = pubName;
         this.productions = productions;
     };
 
@@ -35,7 +36,7 @@ Bexp.Grammar = (function(window, document) {
 
     var Production = function(nonterminal, op, symbols) {
         this.nonterminal = nonterminal;
-        this.op = op;
+        this.id = op;
         this.symbols = [];
         this.dsl = new Bexp.Grammar.ProductionEditor(this);
     };
