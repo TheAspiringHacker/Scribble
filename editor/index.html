@@ -19,11 +19,14 @@
   <script src='sprite.js'></script>
   <script src='b-exp.js'></script>
   <script src='spec.js'></script>
+  <script src='grammar.js'></script>
+  <script src='translations/english-us.js'></script>
   <script src='../lang/_build/4.06.1/src/jsoo/compiler.bc.js'></script>
   <script>
-    var editor = new Bexp.Editor(document.getElementById('editor'), SPEC);
+    var editor = new Bexp.Editor(document.getElementById('editor'),
+    Bexp.Translations['eng-us']);
     editor.palette.appendChild(
-        new Bexp.BlockTemplate(editor, "expr", "letRec")
+        new Bexp.BlockTemplate(editor, 'expr', 'letRec')
     );
     var block1 = editor.newBlock('bindingList', 'nil', []);
     var block2 = editor.newBlock('bindingList', 'cons', [null, null, block1]);

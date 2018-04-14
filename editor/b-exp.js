@@ -17,8 +17,8 @@
  */
 ;'use strict';
 
-const Bexp = (function(window, document) {
-    var Editor = function(elem, spec) {
+var Bexp = (function(window, document) {
+    var Editor = function(elem, translation) {
         this.BLOCK_HEIGHT = 25;
         this.SPACING = 5;
         this.TAB_WIDTH = 30;
@@ -29,7 +29,7 @@ const Bexp = (function(window, document) {
 
         var list = document.createElement('ul');
         list.setAttribute('id', 'categories');
-        for(var i = 0; i < spec.categories.length; ++i) {
+        for(var i = 0; i < translation.categories; ++i) {
             var div = document.createElement('div');
             div.textContent = spec.categories[i].id;
             div.setAttribute('class', 'category');
@@ -59,7 +59,7 @@ const Bexp = (function(window, document) {
         this.sprite.graphics.setAttributeNS(null, 'height', '100%');
 
         this.scriptArea.appendChild(this.sprite.graphics);
-        this.spec = spec;
+        this.grammar = translation;
         this.scripts = new Set();
         this.holes = new Set();
         this.dragged = null;
@@ -134,7 +134,9 @@ const Bexp = (function(window, document) {
         this.editor = editor;
         this.nonterminal = nonterminal;
         this.production = production;
-        this.grammar = editor.spec.nonterminals[nonterminal][production];
+        this.symbols = editor.grammar
+                             .nonterminals[nonterminal]
+                             .productions[production].symbols;
         this.args = args || [];
         this.index = index || -1;
         this.rect = document.createElementNS(Bexp.svgNS, 'rect');
@@ -150,10 +152,10 @@ const Bexp = (function(window, document) {
 
         (function(self) {
             var argIdx = 0;
-            for(var i = 0; i < self.grammar.length; ++i) {
-                switch(self.grammar[i].type) {
+            for(var i = 0; i < self.symbols.length; ++i) {
+                switch(self.symbols[i].type) {
                 case 'token':
-                    var text = new SVGSprite.Text(self.grammar[i].text);
+                    var text = new SVGSprite.Text(self.symbols[i].text);
                     text.setFill('white');
                     self.appendChild(text);
                     break;
@@ -175,7 +177,7 @@ const Bexp = (function(window, document) {
                 case 'tab':
                     break;
                 default:
-                    console.error(self.op.grammar[i].type + ' not a case');
+                    console.error(self.symbols[i].type + ' not a case');
                 }
             }
         })(this);
@@ -198,13 +200,13 @@ const Bexp = (function(window, document) {
         var oldHeight = this.height();
         this.newlines = 0;
         var iter = this.childNodes[Symbol.iterator]();
-        for(var i = 0; i < this.grammar.length; ++i) {
+        for(var i = 0; i < this.symbols.length; ++i) {
             // This if statement is put first and has a continue because
             // newline items in the grammar don't correspond with any graphics
             // widget / object / sprite, so next should not be called on iter!
             // If you think that this design is dirty and that I should make a
             // dummy newline object or something, please let me know in a PR!
-            if(this.grammar[i].type == 'newline') {
+            if(this.symbols[i].type == 'newline') {
                 if(rowWidth > largestWidth) {
                     largestWidth = rowWidth;
                 }
@@ -212,17 +214,17 @@ const Bexp = (function(window, document) {
                 ++this.newlines;
                 continue;
             }
-            if(this.grammar[i].type == 'tab') {
+            if(this.symbols[i].type == 'tab') {
                 rowWidth += this.editor.TAB_WIDTH;
                 continue;
             }
             var child = iter.next().value;
             var offset = this.newlines * this.editor.BLOCK_HEIGHT;
-            if(this.grammar[i].type == 'token') {
+            if(this.symbols[i].type == 'token') {
                 rowWidth += this.editor.SPACING;
                 child.transform.translation = {x: rowWidth, y: offset + 17};
                 rowWidth += child.width() + this.editor.SPACING;
-            } else if(this.grammar[i].type == 'nonterminal') {
+            } else if(this.symbols[i].type == 'nonterminal') {
                 child.transform.translation.x = rowWidth;
                 child.transform.translation.y = offset;
                 rowWidth += child.width();
@@ -398,6 +400,7 @@ const Bexp = (function(window, document) {
         Editor: Editor,
         BlockExpr: BlockExpr,
         BlockTemplate: BlockTemplate,
-        Palette: Palette
+        Palette: Palette,
+        Translations: {}
     };
 })(window, document);
