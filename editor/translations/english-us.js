@@ -1,5 +1,7 @@
 ;'use strict';
 
+var Translations = Translations || {};
+
 (function() {
 var grammar = new Bexp.Grammar.Grammar();
 
@@ -57,5 +59,5 @@ grammar.addNonterminal('caseList', 'Case List')
         .tok('end switch')
     ;
 
-Bexp.Translations['eng-us'] = grammar;
+Translations['eng-us'] = grammar;
 })();

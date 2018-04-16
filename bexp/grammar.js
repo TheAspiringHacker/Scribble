@@ -9,28 +9,32 @@
 
 ;'use strict';
 
+var Bexp = Bexp || {};
+
 Bexp.Grammar = (function(window, document) {
     var Grammar = function() {
-        this.categories = [];
         this.nonterminals = {};
+        this.orderedNonterminals = [];
     };
 
     Grammar.prototype.addNonterminal = function(id, name) {
-        var nonterminal = new Bexp.Grammar.Nonterminal(id, name, {});
+        var nonterminal = new Bexp.Grammar.Nonterminal(id, name);
         this.nonterminals[id] = nonterminal;
-        this.categories.push(id);
+        this.orderedNonterminals.push(id);
         return nonterminal;
     };
 
-    var Nonterminal = function(id, name, productions) {
+    var Nonterminal = function(id, name) {
         this.id = id;
         this.name = name;
-        this.productions = productions;
+        this.productions = {};
+        this.orderedProductions = [];
     };
 
     Nonterminal.prototype.addProduction = function(op) {
         var production = new Bexp.Grammar.Production(this, op, []);
         this.productions[op] = production;
+        this.orderedProductions.push(op);
         return production;
     };
 

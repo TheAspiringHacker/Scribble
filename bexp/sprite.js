@@ -1,6 +1,6 @@
 /**
-    sprite.js - SVG sprite library
-    Copyright (C) 2017  TheAspiringHacker
+    svg.js - SVG sprite library
+    Copyright (C) 2017-2018 TheAspiringHacker
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -17,8 +17,10 @@
  */
 ;'use strict';
 
-const SVGSprite = (function(window, document) {
-    const svgNS = 'http://www.w3.org/2000/svg';
+var Bexp = Bexp || {};
+
+Bexp.Svg = (function(window, document) {
+    const NS = 'http://www.w3.org/2000/svg';
     var translationToAttribute = function(translation) {
         return 'translate(' + translation.x + ', ' + translation.y + ')';
     };
@@ -31,7 +33,7 @@ const SVGSprite = (function(window, document) {
     };
     var Sprite = function(svg, transform) {
         this.graphics = svg;
-        this.childNodes = new Util.List();
+        this.childNodes = new Bexp.Util.List();
         this.linkedListNode = null;
         this.parentNode = null;
         this.prev = null;
@@ -100,7 +102,7 @@ const SVGSprite = (function(window, document) {
             x: this.transform.translation.x,
             y: this.transform.translation.y
         };
-        this.drag.offset = { x: x, y: y };
+        this.drag.offset = {x: x, y: y};
         this.drag.dragged = true;
     };
     Sprite.prototype.updateDrag = function(x, y) {
@@ -116,8 +118,8 @@ const SVGSprite = (function(window, document) {
     };
 
     var Text = function(str) {
-        Sprite.call(this, document.createElementNS(svgNS, 'g'));
-        this.text = document.createElementNS(svgNS, 'text');
+        Bexp.Svg.Sprite.call(this, document.createElementNS(NS, 'g'));
+        this.text = document.createElementNS(NS, 'text');
         this.text.textContent = str;
         this.text.setAttributeNS(null, 'font-size', 12);
         this.graphics.appendChild(this.text);
@@ -132,7 +134,7 @@ const SVGSprite = (function(window, document) {
     Text.prototype.updateSVG = function() {
     };
     return {
-        svgNS: svgNS,
+        NS: NS,
         Sprite: Sprite,
         Text: Text
     };

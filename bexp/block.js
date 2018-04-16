@@ -1,5 +1,5 @@
 /**
-    b-exp.js - Block-expressions library
+    block.js - Block-expressions library
     Copyright (C) 2017  TheAspiringHacker
 
     This program is free software: you can redistribute it and/or modify
@@ -17,7 +17,9 @@
  */
 ;'use strict';
 
-var Bexp = (function(window, document) {
+var Bexp = Bexp || {};
+
+Bexp.Block = (function(window, document) {
     var Editor = function(elem, grammar) {
         this.BLOCK_HEIGHT = 25;
         this.SPACING = 5;
@@ -32,13 +34,13 @@ var Bexp = (function(window, document) {
         this.rootElement.appendChild(this.scriptArea);
 
         this.sprite =
-            new SVGSprite.Sprite(document.createElementNS(Bexp.svgNS, 'svg'));
+            new Bexp.Svg.Sprite(document.createElementNS(Bexp.Svg.NS, 'svg'));
         this.scriptLayer =
-            new SVGSprite.Sprite(document.createElementNS(Bexp.svgNS, 'svg'));
+            new Bexp.Svg.Sprite(document.createElementNS(Bexp.Svg.NS, 'svg'));
         this.scriptLayer.graphics.setAttributeNS(null, 'overflow', 'scroll');
-        this.palette = new Bexp.Palette(this, this.sidebar);
+        this.palette = new Bexp.Block.Palette(this, this.sidebar);
         this.dragLayer =
-            new SVGSprite.Sprite(document.createElementNS(Bexp.svgNS, 'g'));
+            new Bexp.Svg.Sprite(document.createElementNS(Bexp.Svg.NS, 'g'));
         this.sprite.appendChild(this.scriptLayer);
         this.sprite.appendChild(this.dragLayer);
         this.sprite.graphics.setAttributeNS(null, 'id', 'main-svg');
@@ -51,7 +53,7 @@ var Bexp = (function(window, document) {
         this.dragged = null;
     };
     Editor.prototype.newBlock = function(nonterminal, production, children) {
-        return new Bexp.BlockExpr(this, nonterminal, production, children);
+        return new BlockExpr(this, nonterminal, production, children);
     };
     Editor.prototype.addScript = function(script, x, y) {
         script.transform.translation.x = x;
@@ -64,13 +66,12 @@ var Bexp = (function(window, document) {
     };
 
     var Palette = function(owner, sidebar) {
-        this.sprite = new SVGSprite.Sprite(
-            document.createElementNS(Bexp.svgNS, 'svg')
-        );
+        this.sprite =
+            new Bexp.Svg.Sprite(document.createElementNS(Bexp.Svg.NS, 'svg'));
         this.editor = owner;
         this.sidebar = sidebar;
         this.sidebar.setAttribute('id', 'sidebar');
-        this.rect = document.createElementNS(Bexp.svgNS, 'rect');
+        this.rect = document.createElementNS(Bexp.Svg.NS, 'rect');
         this.rect.setAttributeNS(null, 'fill', '#e0e0e0')
         this.rect.setAttributeNS(null, 'width', '200');
         this.rect.setAttributeNS(null, 'height', '1000');
@@ -78,10 +79,11 @@ var Bexp = (function(window, document) {
         this.sprite.graphics.setAttributeNS(null, 'height', '2000');
         this.sprite.graphics.setAttributeNS(null, 'width', '200');
         this.sprite.graphics.appendChild(this.rect);
+        this.setNonterminal(this.editor.grammar.orderedNonterminals[0]);
 
         var ul = document.createElement('ul');
         ul.setAttribute('id', 'categories');
-        for(const category of this.editor.grammar.categories) {
+        for(const category of this.editor.grammar.orderedNonterminals) {
             var div = document.createElement('div');
             div.textContent = this.editor.grammar.nonterminals[category].name;
             div.setAttribute('class', 'category');
@@ -93,9 +95,15 @@ var Bexp = (function(window, document) {
         this.editor.scriptLayer.appendChild(this.sprite);
     };
 
+    Palette.prototype.setNonterminal = function(id) {
+        this.selectedNonterminal = id;
+    };
+
     var Hole = function(owner, index) {
-        SVGSprite.Sprite.call(this, document.createElementNS(Bexp.svgNS, 'g'));
-        this.rect = document.createElementNS(Bexp.svgNS, 'rect');
+        Bexp.Svg.Sprite.call(
+            this, document.createElementNS(Bexp.Svg.NS, 'g')
+        );
+        this.rect = document.createElementNS(Bexp.Svg.NS, 'rect');
         this.rect.setAttributeNS(null, 'rx', '10');
         this.rect.setAttributeNS(null, 'ry', '10');
         this.rect.setAttributeNS(null, 'fill', '#ccb71e');
@@ -111,7 +119,7 @@ var Bexp = (function(window, document) {
         };
         this.owner.editor.holes.add(this);
     };
-    Hole.prototype = Object.create(SVGSprite.Sprite.prototype);
+    Hole.prototype = Object.create(Bexp.Svg.Sprite.prototype);
     Hole.prototype.width = function() {
         return parseInt(this.rect.getAttributeNS(null, 'width'));
     };
@@ -132,7 +140,7 @@ var Bexp = (function(window, document) {
     };
 
     var Block = function(editor, nonterminal, production, args, index) {
-        SVGSprite.Sprite.call(this, document.createElementNS(Bexp.svgNS, 'g'));
+        Bexp.Svg.Sprite.call(this, document.createElementNS(Bexp.Svg.NS, 'g'));
         this.editor = editor;
         this.nonterminal = nonterminal;
         this.production = production;
@@ -141,7 +149,7 @@ var Bexp = (function(window, document) {
                              .productions[production].symbols;
         this.args = args || [];
         this.index = index || -1;
-        this.rect = document.createElementNS(Bexp.svgNS, 'rect');
+        this.rect = document.createElementNS(Bexp.Svg.NS, 'rect');
         this.rect.setAttributeNS(null, 'rx', '10');
         this.rect.setAttributeNS(null, 'ry', '10');
         this.rect.setAttributeNS(null, 'stroke', '#ccb71e');
@@ -157,7 +165,7 @@ var Bexp = (function(window, document) {
             for(var i = 0; i < this.symbols.length; ++i) {
                 switch(this.symbols[i].type) {
                 case 'token':
-                    var text = new SVGSprite.Text(this.symbols[i].text);
+                    var text = new Bexp.Svg.Text(this.symbols[i].text);
                     text.setFill('white');
                     this.appendChild(text);
                     break;
@@ -187,7 +195,7 @@ var Bexp = (function(window, document) {
     };
 
     // Block extends Sprite
-    Block.prototype = Object.create(SVGSprite.Sprite.prototype);
+    Block.prototype = Object.create(Bexp.Svg.Sprite.prototype);
     Block.prototype.width = function() {
         return parseInt(this.rect.getAttributeNS(null, 'width'));
     };
@@ -320,8 +328,8 @@ var Bexp = (function(window, document) {
         this.dropTarget = null;
         for(hole of this.editor.holes) {
             if(!hole.cachedDragData.isDragged) {
-                var dist = Util.distance(hole.cachedDragData.pos,
-                                         this.transform.translation);
+                var dist = Bexp.Util.distance(hole.cachedDragData.pos,
+                                              this.transform.translation);
                 if(dist < shortestDist) {
                     shortestDist = dist;
                     this.dropTarget = hole;
@@ -399,7 +407,6 @@ var Bexp = (function(window, document) {
     };
 
     return {
-        svgNS: 'http://www.w3.org/2000/svg',
         Editor: Editor,
         BlockExpr: BlockExpr,
         BlockTemplate: BlockTemplate,

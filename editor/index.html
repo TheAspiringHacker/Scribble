@@ -15,17 +15,17 @@
     </span>
   </header>
   <div id='editor'></div>
-  <script src='util/util.js'></script>
-  <script src='sprite.js'></script>
-  <script src='b-exp.js'></script>
-  <script src='grammar.js'></script>
+  <script src='../bexp/util.js'></script>
+  <script src='../bexp/sprite.js'></script>
+  <script src='../bexp/block.js'></script>
+  <script src='../bexp/grammar.js'></script>
   <script src='translations/english-us.js'></script>
   <script src='../lang/_build/4.06.1/src/jsoo/compiler.bc.js'></script>
   <script>
-    var editor = new Bexp.Editor(document.getElementById('editor'),
-    Bexp.Translations['eng-us']);
+    var editor = new Bexp.Block.Editor(document.getElementById('editor'),
+    Translations['eng-us']);
     editor.palette.sprite.appendChild(
-        new Bexp.BlockTemplate(editor, 'expr', 'letRec')
+        new Bexp.Block.BlockTemplate(editor, 'expr', 'letRec')
     );
     var block1 = editor.newBlock('bindingList', 'nil', []);
     var block2 = editor.newBlock('bindingList', 'cons', [null, null, block1]);
