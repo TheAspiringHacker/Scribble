@@ -1,5 +1,5 @@
 /**
-    util.js - SVG sprite library
+    util.js - utility library
     Copyright (C) 2017-2018 TheAspiringHacker
 
     This program is free software: you can redistribute it and/or modify

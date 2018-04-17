@@ -13,6 +13,7 @@ pages:
   - cd lang && jbuilder build src/jsoo/compiler.bc.js && cd ../
   - mkdir -p public/lang/_build/4.06.1/src/jsoo
   - mv lang/_build/4.06.1/src/jsoo/compiler.bc.js public/lang/_build/4.06.1/src/jsoo
+  - mv bexp public
   - mv editor public
   artifacts:
     paths:
