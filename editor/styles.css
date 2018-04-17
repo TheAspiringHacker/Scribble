@@ -80,7 +80,14 @@ header {
     color: white;
     background-color: grey;
     border-width: 0 0 0 5px;
-    border-color: red;
+    margin: 0;
+    padding: 5px;
+}
+
+.selected-category {
+    color: grey;
+    background-color: white;
+    border-width: 0 0 0 5px;
     margin: 0;
     padding: 5px;
 }

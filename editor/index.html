@@ -24,21 +24,5 @@
   <script>
     var editor = new Bexp.Block.Editor(document.getElementById('editor'),
     Translations['eng-us']);
-    var block1 = editor.newBlock('bindingList', 'nil', []);
-    var block2 = editor.newBlock('bindingList', 'cons', [null, null, block1]);
-    var block3 = editor.newBlock('bindingList', 'cons', [null, null, block2]);
-    var block4 = editor.newBlock('expr', 'if', [])
-    var block5 = editor.newBlock('expr', 'letRec', [block3, block4]);
-    var block6 = editor.newBlock('case', 'case', []);
-    var block7 = editor.newBlock('case', 'caseIf', []);
-    var block8 = editor.newBlock('caseList', 'nil', []);
-    var block9 = editor.newBlock('caseList', 'cons', [block7, block8]);
-    var block10 = editor.newBlock('caseList', 'cons', [block6, block9]);
-    var block11 = editor.newBlock('expr', 'match', [null, block10]);
-    var block12 = editor.newBlock('expr', 'seq', []);
-    var block13 = editor.newBlock('expr', 'seq', [null, block12]);
-    editor.addScript(block5, 202, 5);
-    editor.addScript(block11, 300, 100);
-    editor.addScript(block13, 400, 100);
   </script>
 </body>

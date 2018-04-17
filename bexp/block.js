@@ -52,6 +52,8 @@ Bexp.Block = (function(window, document) {
 
         this.scriptArea.appendChild(this.sprite.graphics);
         this.dragged = null;
+
+        this.sprite.render();
     };
     Editor.prototype.newBlock = function(nonterminal, production, children) {
         return new Bexp.Block.Expr(this, nonterminal, production, children);
@@ -85,8 +87,8 @@ Bexp.Block = (function(window, document) {
         var ul = document.createElement('ul');
         ul.setAttribute('id', 'categories');
         for(const catId of this.editor.grammar.orderedNonterminals) {
-            this.categories[catId] =
-                (new Bexp.Block.Category(ul, this.editor, catId));
+            var category = new Bexp.Block.Category(ul, this, catId);
+            this.categories[catId] = category;
         }
         this.sidebar.appendChild(ul);
         this.editor.scriptLayer.appendChild(this.sprite);
@@ -94,16 +96,23 @@ Bexp.Block = (function(window, document) {
         this.selectedCategory
             = this.categories[this.editor.grammar.orderedNonterminals[0]];
         this.sprite.appendChild(this.selectedCategory.sprite);
+        this.setCategory(this.selectedCategory);
     };
 
-    Palette.prototype.setNonterminal = function(id) {
+    Palette.prototype.setCategory = function(category) {
+        this.selectedCategory.div.setAttribute('class', 'category');
+        category.div.setAttribute('class', 'selected-category');
         this.sprite.removeChild(this.selectedCategory.sprite);
+        this.sprite.appendChild(category.sprite);
+        this.sprite.render();
+        this.selectedCategory = category;
     };
 
-    var Category = function(ul, editor, catId) {
+    var Category = function(ul, palette, catId) {
         this.div = document.createElement('div');
-        this.editor = editor;
-        this.nonterminal = this.editor.grammar.nonterminals[catId];
+        this.palette = palette;
+        var editor = palette.editor;
+        this.nonterminal = editor.grammar.nonterminals[catId];
         this.div.textContent = this.nonterminal.name;
         this.div.setAttribute('class', 'category');
         this.li = document.createElement('li');
@@ -115,12 +124,21 @@ Bexp.Block = (function(window, document) {
         var y = 10;
         for(const blockId of this.nonterminal.orderedProductions) {
             var template =
-                new Bexp.Block.Template(this.editor, catId, blockId, [], -1);
+                new Bexp.Block.Template(editor, catId, blockId, [], -1);
             template.transform.translation.x = 10;
             template.transform.translation.y = y;
             template.updateSVG();
             y += template.height() + 10;
             this.sprite.appendChild(template);
+        }
+
+        this.div.addEventListener('mousedown', this);
+    };
+
+    Category.prototype.handleEvent = function(event) {
+        switch(event.type) {
+        case 'mousedown':
+            this.palette.setCategory(this);
         }
     };
 
