@@ -10,10 +10,13 @@ grammar.addNonterminal('expr', 'Expression')
         .nt('expr', 'function').nt('expr', 'argument')
 
     .end().addProduction('if').dsl
-        .tok('if').nt('expr', 'pred').tok('then')
-        .indent().nt('expr', 'cons').outdent()
-        .tok('else')
-        .indent().nt('expr', 'alt')
+        .tok('if').nt('expr', 'pred').tok('then').indent()
+            .nt('expr', 'cons').outdent()
+        .tok('else').indent()
+            .nt('expr', 'alt')
+
+    .end().addProduction('lambda').dsl
+        .tok('fun').nt('pattern', 'params').tok('->').nt('expr', 'body')
 
     .end().addProduction('let').dsl
         .tok('let').nt('bindingList', 'bindings').tok('in').endl()
@@ -24,7 +27,7 @@ grammar.addNonterminal('expr', 'Expression')
         .nt('expr', 'body')
 
     .end().addProduction('match').dsl
-        .tok('switch').nt('expr', 'test').tok('with').endl()
+        .tok('case').nt('expr', 'test').tok('of').endl()
         .nt('case', 'case')
 
     .end().addProduction('seq').dsl
@@ -43,12 +46,13 @@ grammar.addNonterminal('bindingList', 'Binding List')
 
 grammar.addNonterminal('case', 'Case')
     .addProduction('case').dsl
-        .tok('case').nt('pattern', 'pat').tok(':')
-        .indent().nt('expr', 'expr')
+        .tok('case').nt('pattern', 'pat').tok('->').indent()
+            .nt('expr', 'expr')
 
     .end().addProduction('caseIf').dsl
-        .tok('case').nt('pattern', 'pat').tok('if').nt('expr', 'pred').tok(':')
-        .indent().nt('expr', 'expr')
+        .tok('case').nt('pattern', 'pat')
+        .tok('when').nt('expr', 'pred').tok('->').indent()
+            .nt('expr', 'expr')
     ;
 
 grammar.addNonterminal('caseList', 'Case List')
@@ -56,7 +60,12 @@ grammar.addNonterminal('caseList', 'Case List')
         .tok('|').nt('case', 'car').endl().nt('caseList', 'cdr')
 
     .end().addProduction('nil').dsl
-        .tok('end switch')
+        .tok('end cases')
+    ;
+
+grammar.addNonterminal('pattern', 'Pattern')
+    .addProduction('wildcard').dsl
+        .tok('_')
     ;
 
 Translations['eng-us'] = grammar;

@@ -21,11 +21,14 @@ var Bexp = Bexp || {};
 
 Bexp.Block = (function(window, document) {
     var Editor = function(elem, grammar) {
+        this.editor = this;
         this.BLOCK_HEIGHT = 25;
         this.SPACING = 5;
         this.TAB_WIDTH = 30;
         this.rootElement = elem;
         this.grammar = grammar;
+        this.scripts = new Set();
+        this.holes = new Set();
         this.sidebar = document.createElement('div');
         this.rootElement.appendChild(this.sidebar);
 
@@ -48,12 +51,10 @@ Bexp.Block = (function(window, document) {
         this.sprite.graphics.setAttributeNS(null, 'height', '100%');
 
         this.scriptArea.appendChild(this.sprite.graphics);
-        this.scripts = new Set();
-        this.holes = new Set();
         this.dragged = null;
     };
     Editor.prototype.newBlock = function(nonterminal, production, children) {
-        return new BlockExpr(this, nonterminal, production, children);
+        return new Bexp.Block.Expr(this, nonterminal, production, children);
     };
     Editor.prototype.addScript = function(script, x, y) {
         script.transform.translation.x = x;
@@ -79,24 +80,48 @@ Bexp.Block = (function(window, document) {
         this.sprite.graphics.setAttributeNS(null, 'height', '2000');
         this.sprite.graphics.setAttributeNS(null, 'width', '200');
         this.sprite.graphics.appendChild(this.rect);
-        this.setNonterminal(this.editor.grammar.orderedNonterminals[0]);
+        this.categories = {};
 
         var ul = document.createElement('ul');
         ul.setAttribute('id', 'categories');
-        for(const category of this.editor.grammar.orderedNonterminals) {
-            var div = document.createElement('div');
-            div.textContent = this.editor.grammar.nonterminals[category].name;
-            div.setAttribute('class', 'category');
-            var li = document.createElement('li');
-            li.appendChild(div);
-            ul.appendChild(li);
+        for(const catId of this.editor.grammar.orderedNonterminals) {
+            this.categories[catId] =
+                (new Bexp.Block.Category(ul, this.editor, catId));
         }
         this.sidebar.appendChild(ul);
         this.editor.scriptLayer.appendChild(this.sprite);
+
+        this.selectedCategory
+            = this.categories[this.editor.grammar.orderedNonterminals[0]];
+        this.sprite.appendChild(this.selectedCategory.sprite);
     };
 
     Palette.prototype.setNonterminal = function(id) {
-        this.selectedNonterminal = id;
+        this.sprite.removeChild(this.selectedCategory.sprite);
+    };
+
+    var Category = function(ul, editor, catId) {
+        this.div = document.createElement('div');
+        this.editor = editor;
+        this.nonterminal = this.editor.grammar.nonterminals[catId];
+        this.div.textContent = this.nonterminal.name;
+        this.div.setAttribute('class', 'category');
+        this.li = document.createElement('li');
+        this.li.appendChild(this.div);
+        ul.appendChild(this.li);
+
+        this.sprite =
+            new Bexp.Svg.Sprite(document.createElementNS(Bexp.Svg.NS, 'g'));
+        var y = 10;
+        for(const blockId of this.nonterminal.orderedProductions) {
+            var template =
+                new Bexp.Block.Template(this.editor, catId, blockId, [], -1);
+            template.transform.translation.x = 10;
+            template.transform.translation.y = y;
+            template.updateSVG();
+            y += template.height() + 10;
+            this.sprite.appendChild(template);
+        }
     };
 
     var Hole = function(owner, index) {
@@ -108,9 +133,9 @@ Bexp.Block = (function(window, document) {
         this.rect.setAttributeNS(null, 'ry', '10');
         this.rect.setAttributeNS(null, 'fill', '#ccb71e');
         this.rect.setAttributeNS(null, 'width', '25');
-        this.rect.setAttributeNS(null, 'height', editor.BLOCK_HEIGHT);
+        this.rect.setAttributeNS(null, 'height', owner.editor.BLOCK_HEIGHT);
         this.graphics.setAttributeNS(null, 'width', '25');
-        this.graphics.setAttributeNS(null, 'height', editor.BLOCK_HEIGHT);
+        this.graphics.setAttributeNS(null, 'height', owner.editor.BLOCK_HEIGHT);
         this.graphics.appendChild(this.rect);
         this.owner = owner;
         this.index = index;
@@ -253,7 +278,7 @@ Bexp.Block = (function(window, document) {
         this.rect.setAttributeNS(null, 'width', largestWidth);
         this.rect.setAttributeNS(null, 'height', this.height());
         if(this.width() != oldWidth || this.height() != oldHeight) {
-            if(this.parentNode != this.editor) {
+            if(this.parentNode instanceof Bexp.Svg.Sprite) {
                 this.parentNode.render();
             }
         }
@@ -267,13 +292,13 @@ Bexp.Block = (function(window, document) {
 
     Block.prototype.handleEvent = function(event) {};
 
-    var BlockExpr = function(editor, nonterminal, production, args, index) {
+    var Expr = function(editor, nonterminal, production, args, index) {
         Block.call(this, editor, nonterminal, production, args, index);
     };
-    // BlockExpr extends Block
-    BlockExpr.prototype = Object.create(Block.prototype);
+    // Expr extends Block
+    Expr.prototype = Object.create(Block.prototype);
 
-    BlockExpr.prototype.mousedownEvent = function(event) {
+    Expr.prototype.mousedownEvent = function(event) {
         event.preventDefault();
         event.stopPropagation();
         document.addEventListener('mousemove', this);
@@ -309,7 +334,7 @@ Bexp.Block = (function(window, document) {
                 isDragged: false
             };
             var node = hole.owner;
-            while(node !== this.editor.sprite) {
+            while(node instanceof Block) {
                 if(node === this) {
                     hole.cachedDragData.isDragged = true;
                     break;
@@ -321,7 +346,7 @@ Bexp.Block = (function(window, document) {
         }
     };
 
-    BlockExpr.prototype.mousemoveEvent = function(event) {
+    Expr.prototype.mousemoveEvent = function(event) {
         this.updateDrag(event.pageX, event.pageY);
         var oldHole = this.dropTarget;
         var shortestDist = 20;
@@ -349,7 +374,7 @@ Bexp.Block = (function(window, document) {
         this.render();
     };
 
-    BlockExpr.prototype.mouseupEvent = function(event) {
+    Expr.prototype.mouseupEvent = function(event) {
         document.removeEventListener('mousemove', this);
         document.removeEventListener('mouseup', this);
         this.editor.dragLayer.removeChild(this);
@@ -373,7 +398,7 @@ Bexp.Block = (function(window, document) {
         this.stopDrag();
     };
 
-    BlockExpr.prototype.handleEvent = function(event) {
+    Expr.prototype.handleEvent = function(event) {
         switch(event.type) {
         case 'mousedown':
             this.mousedownEvent(event);
@@ -387,13 +412,13 @@ Bexp.Block = (function(window, document) {
         }
     };
 
-    var BlockTemplate = function(editor, nonterminal, production, args, index) {
+    var Template = function(editor, nonterminal, production, args, index) {
         Block.call(this, editor, nonterminal, production, args, index);
     };
-    // BlockTemplate extends Block
-    BlockTemplate.prototype = Object.create(Block.prototype);
+    // Template extends Block
+    Template.prototype = Object.create(Block.prototype);
 
-    BlockTemplate.prototype.handleEvent = function(event) {
+    Template.prototype.handleEvent = function(event) {
         switch(event.type) {
         case 'mousedown':
             var block = this.editor.newBlock(this.nonterminal, this.production);
@@ -408,9 +433,9 @@ Bexp.Block = (function(window, document) {
 
     return {
         Editor: Editor,
-        BlockExpr: BlockExpr,
-        BlockTemplate: BlockTemplate,
+        Expr: Expr,
+        Template: Template,
         Palette: Palette,
-        Translations: {}
+        Category: Category
     };
 })(window, document);
