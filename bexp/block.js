@@ -20,13 +20,14 @@
 var Bexp = Bexp || {};
 
 Bexp.Block = (function(window, document) {
-    var Editor = function(elem, grammar) {
+    var Editor = function(app, elem) {
+        this.app = app;
         this.editor = this;
         this.BLOCK_HEIGHT = 25;
         this.SPACING = 5;
         this.TAB_WIDTH = 30;
         this.rootElement = elem;
-        this.grammar = grammar;
+        this.grammar = this.app.translations['en-us'];
         this.scripts = new Set();
         this.holes = new Set();
         this.sidebar = document.createElement('div');
@@ -440,8 +441,8 @@ Bexp.Block = (function(window, document) {
         switch(event.type) {
         case 'mousedown':
             var block = this.editor.newBlock(this.nonterminal, this.production);
-            editor.addScript(block, this.transform.translation.x,
-                             this.transform.translation.y);
+            this.editor.addScript(block, this.transform.translation.x,
+                                  this.transform.translation.y);
             block.handleEvent(event);
             break;
         default:

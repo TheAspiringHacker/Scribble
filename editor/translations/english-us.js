@@ -68,5 +68,5 @@ grammar.addNonterminal('pattern', 'Pattern')
         .tok('_')
     ;
 
-Translations['eng-us'] = grammar;
+scribble.translations['en-us'] = grammar;
 })();
