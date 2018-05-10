@@ -183,17 +183,28 @@ Bexp.Block = (function(window, document) {
         this.rect.setAttributeNS(null, 'fill', '#ccb71e');
     };
 
-    var Input = function(editor) {
+    var Input = function(type, editor) {
         Bexp.Svg.Sprite.call(this, document.createElementNS(Bexp.Svg.NS, 'g'));
         this.foreign = document.createElementNS(Bexp.Svg.NS, 'foreignObject');
-        this.foreign.setAttribute('width', '25');
         this.foreign.setAttribute('height', editor.BLOCK_HEIGHT);
 
         this.body = document.createElement('body');
         this.input = document.createElement('input');
-        this.input.setAttribute('type', 'text');
-        this.input.setAttribute('size', '1');
-        this.input.maxLength = 1;
+        if(type === 'number') {
+            this.input.setAttribute('type', 'number');
+        } else {
+            this.input.setAttribute('type', 'text');
+        }
+        if(type === 'char') {
+            this.input.size = 1;
+            this.foreign.setAttribute('width', '25');
+        } else {
+            this.input.size = 7;
+            this.foreign.setAttribute('width', '50');
+        }
+        if(type === 'char') {
+            this.input.maxLength = 1;
+        }
 
         this.body.appendChild(this.input);
         this.foreign.appendChild(this.body);
@@ -254,8 +265,14 @@ Bexp.Block = (function(window, document) {
                     }
                     ++argIdx;
                     break;
-                case 'input':
-                    this.appendChild(new Input(this.editor));
+                case 'char':
+                    this.appendChild(new Input('char', this.editor));
+                    break;
+                case 'number':
+                    this.appendChild(new Input('number', this.editor));
+                    break;
+                case 'string':
+                    this.appendChild(new Input('string', this.editor));
                     break;
                 case 'newline':
                 case 'tab':
@@ -319,7 +336,9 @@ Bexp.Block = (function(window, document) {
                     }
                 }
                 ++nonterminalIdx;
-            } else if(this.symbols[i].type === 'input') {
+            } else if(this.symbols[i].type === 'char'
+                      || this.symbols[i].type === 'number'
+                      || this.symbols[i].type === 'string') {
                 child.transform.translation.x = rowWidth;
                 rowWidth += child.width() + this.editor.SPACING;
             }

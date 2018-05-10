@@ -101,3 +101,7 @@ header {
 input[type='text'] {
     font-size: 10px;
 }
+
+input[type='number'] {
+    font-size: 10px;
+}

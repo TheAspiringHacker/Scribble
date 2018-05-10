@@ -77,8 +77,16 @@ Bexp.Grammar = (function(window, document) {
         this.symbols.push({type: 'tab'});
     };
 
-    Production.prototype.addInput = function() {
-        this.symbols.push({type: 'input'});
+    Production.prototype.addChar = function() {
+        this.symbols.push({type: 'char'});
+    };
+
+    Production.prototype.addNumber = function() {
+        this.symbols.push({type: 'number'});
+    };
+
+    Production.prototype.addString = function() {
+        this.symbols.push({type: 'string'});
     };
 
     var ProductionEditor = function(production) {
@@ -124,8 +132,18 @@ Bexp.Grammar = (function(window, document) {
         return this;
     };
 
-    ProductionEditor.prototype.input = function() {
-        this.raw.addInput();
+    ProductionEditor.prototype.ch = function() {
+        this.raw.addChar();
+        return this;
+    };
+
+    ProductionEditor.prototype.num = function() {
+        this.raw.addNumber();
+        return this;
+    };
+
+    ProductionEditor.prototype.str = function() {
+        this.raw.addString();
         return this;
     };
 

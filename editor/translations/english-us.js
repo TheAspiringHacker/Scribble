@@ -41,7 +41,13 @@ grammar.addNonterminal('expr', 'Expression')
         .tok('false')
 
     .end().addProduction('char').dsl
-        .tok("'").input().tok("'")
+        .tok("'").ch().tok("'")
+
+    .end().addProduction('float').dsl
+        .tok('#').num()
+
+    .end().addProduction('string').dsl
+        .tok('"').str().tok("'")
     ;
 
 grammar.addNonterminal('bindingList', 'Binding List')
