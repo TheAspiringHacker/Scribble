@@ -97,3 +97,7 @@ header {
     height: 100%;
     display: block;
 }
+
+input[type='text'] {
+    font-size: 10px;
+}

@@ -33,6 +33,15 @@ grammar.addNonterminal('expr', 'Expression')
     .end().addProduction('seq').dsl
         .nt('expr', 'first').tok(';').endl()
         .nt('expr', 'second')
+
+    .end().addProduction('true').dsl
+        .tok('true')
+
+    .end().addProduction('false').dsl
+        .tok('false')
+
+    .end().addProduction('char').dsl
+        .tok("'").input().tok("'")
     ;
 
 grammar.addNonterminal('bindingList', 'Binding List')

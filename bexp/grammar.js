@@ -77,6 +77,10 @@ Bexp.Grammar = (function(window, document) {
         this.symbols.push({type: 'tab'});
     };
 
+    Production.prototype.addInput = function() {
+        this.symbols.push({type: 'input'});
+    };
+
     var ProductionEditor = function(production) {
         this.raw = production;
         this.indentation = 0;
@@ -117,6 +121,11 @@ Bexp.Grammar = (function(window, document) {
         for(var i = 0; i < this.indentation; ++i) {
             this.raw.addTab();
         }
+        return this;
+    };
+
+    ProductionEditor.prototype.input = function() {
+        this.raw.addInput();
         return this;
     };
 

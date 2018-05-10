@@ -183,6 +183,33 @@ Bexp.Block = (function(window, document) {
         this.rect.setAttributeNS(null, 'fill', '#ccb71e');
     };
 
+    var Input = function(editor) {
+        Bexp.Svg.Sprite.call(this, document.createElementNS(Bexp.Svg.NS, 'g'));
+        this.foreign = document.createElementNS(Bexp.Svg.NS, 'foreignObject');
+        this.foreign.setAttribute('width', '25');
+        this.foreign.setAttribute('height', editor.BLOCK_HEIGHT);
+
+        this.body = document.createElement('body');
+        this.input = document.createElement('input');
+        this.input.setAttribute('type', 'text');
+        this.input.setAttribute('size', '1');
+        this.input.maxLength = 1;
+
+        this.body.appendChild(this.input);
+        this.foreign.appendChild(this.body);
+        this.graphics.appendChild(this.foreign);
+        this.graphics.addEventListener('mousedown', this);
+    };
+    Input.prototype = Object.create(Bexp.Svg.Sprite.prototype);
+
+    Input.prototype.width = function() {
+        return parseInt(this.foreign.getAttribute('width'));
+    };
+
+    Input.prototype.handleEvent = function(event) {
+        event.stopPropagation();
+    };
+
     var Block = function(editor, nonterminal, production, args, index) {
         Bexp.Svg.Sprite.call(this, document.createElementNS(Bexp.Svg.NS, 'g'));
         this.editor = editor;
@@ -227,6 +254,9 @@ Bexp.Block = (function(window, document) {
                     }
                     ++argIdx;
                     break;
+                case 'input':
+                    this.appendChild(new Input(this.editor));
+                    break;
                 case 'newline':
                 case 'tab':
                     break;
@@ -268,27 +298,30 @@ Bexp.Block = (function(window, document) {
                 ++this.newlines;
                 continue;
             }
-            if(this.symbols[i].type == 'tab') {
+            if(this.symbols[i].type === 'tab') {
                 rowWidth += this.editor.TAB_WIDTH;
                 continue;
             }
             var child = iter.next().value;
             var offset = this.newlines * this.editor.BLOCK_HEIGHT;
-            if(this.symbols[i].type == 'token') {
+            if(this.symbols[i].type === 'token') {
                 rowWidth += this.editor.SPACING;
                 child.transform.translation = {x: rowWidth, y: offset + 17};
                 rowWidth += child.width() + this.editor.SPACING;
-            } else if(this.symbols[i].type == 'nonterminal') {
+            } else if(this.symbols[i].type === 'nonterminal') {
                 child.transform.translation.x = rowWidth;
                 child.transform.translation.y = offset;
                 rowWidth += child.width();
-                if(this.args[nonterminalIdx] == null) {
+                if(this.args[nonterminalIdx] === null) {
                 } else {
                     if(this.args[nonterminalIdx].newlines > 0) {
                         this.newlines += this.args[nonterminalIdx].newlines;
                     }
                 }
                 ++nonterminalIdx;
+            } else if(this.symbols[i].type === 'input') {
+                child.transform.translation.x = rowWidth;
+                rowWidth += child.width() + this.editor.SPACING;
             }
         }
         if(rowWidth > largestWidth) {
@@ -318,7 +351,6 @@ Bexp.Block = (function(window, document) {
     Expr.prototype = Object.create(Block.prototype);
 
     Expr.prototype.mousedownEvent = function(event) {
-        event.preventDefault();
         event.stopPropagation();
         document.addEventListener('mousemove', this);
         document.addEventListener('mouseup', this);
@@ -344,7 +376,7 @@ Bexp.Block = (function(window, document) {
 
         // Thanks NickyNouse on Scratch for the cache solution
         // https://scratch.mit.edu/discuss/topic/283813/?page=2#post-2928778
-        for(hole of this.editor.holes) {
+        for(var hole of this.editor.holes) {
             hole.cachedDragData = {
                 pos: {
                     x: hole.transform.translation.x,
@@ -452,6 +484,9 @@ Bexp.Block = (function(window, document) {
 
     return {
         Editor: Editor,
+        Hole: Hole,
+        Input: Input,
+        Block: Block,
         Expr: Expr,
         Template: Template,
         Palette: Palette,
