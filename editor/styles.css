@@ -104,4 +104,5 @@ input[type='text'] {
 
 input[type='number'] {
     font-size: 10px;
+    width: 45px;
 }

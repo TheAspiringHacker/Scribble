@@ -47,7 +47,7 @@ grammar.addNonterminal('expr', 'Expression')
         .tok('#').num()
 
     .end().addProduction('string').dsl
-        .tok('"').str().tok("'")
+        .tok('"').str().tok('"')
     ;
 
 grammar.addNonterminal('bindingList', 'Binding List')

@@ -197,9 +197,15 @@ Bexp.Block = (function(window, document) {
         }
         if(type === 'char') {
             this.input.size = 1;
+            this.input.value = 'a';
             this.foreign.setAttribute('width', '25');
+        } else if(type === 'number') {
+            this.input.step = 'any';
+            this.input.value = 3.14;
+            this.foreign.setAttribute('width', '50');
         } else {
-            this.input.size = 7;
+            this.input.size = 5;
+            this.input.value = 'Hello, world!';
             this.foreign.setAttribute('width', '50');
         }
         if(type === 'char') {
