@@ -390,7 +390,7 @@ Bexp.Block = (function(window, document) {
         var oldParent = this.parentNode;
         if(this.parentNode === this.editor.scriptLayer) {
             this.parentNode.removeChild(this);
-        } else {
+        } else if (this.parentNode instanceof Block) {
             this.parentNode.clearArg(this);
         }
         this.editor.dragLayer.appendChild(this);
