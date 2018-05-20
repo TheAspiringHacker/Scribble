@@ -1,0 +1,22 @@
+body {
+    background: #20abff;
+    font-family: sans-serif;
+}
+
+a {
+    color: #20abff;
+    text-decoration: none;
+}
+
+a:hover {
+    color: #009bff;
+}
+
+.content {
+    background: white;
+    border: 0;
+    border-radius: 25px;
+    margin: 5%;
+    padding: 2% 5%;
+    width: 80%;
+}
