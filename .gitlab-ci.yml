@@ -15,6 +15,8 @@ pages:
   - mv lang/_build/4.06.1/src/jsoo/compiler.bc.js public/lang/_build/4.06.1/src/jsoo
   - mv bexp public
   - mv editor public
+  - mv index.html public
+  - mv styles.css public
   artifacts:
     paths:
     - public
