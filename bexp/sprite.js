@@ -21,17 +21,17 @@ var Bexp = Bexp || {};
 
 Bexp.Svg = (function(window, document) {
     const NS = 'http://www.w3.org/2000/svg';
-    var translationToAttribute = function(translation) {
+    const translationToAttribute = function(translation) {
         return 'translate(' + translation.x + ', ' + translation.y + ')';
     };
-    var rotationToAttribute = function(rotation) {
+    const rotationToAttribute = function(rotation) {
         return 'rotate(' + rotation.radians + ', ' + rotation.position.x
             + ', ' + rotation.position.y + ')';
     };
-    var scaleToAttribute = function(scale) {
+    const scaleToAttribute = function(scale) {
         return 'scale(' + scale.x + ', ' + scale.y + ')';
     };
-    var Sprite = function(svg, transform) {
+    const Sprite = function(svg, transform) {
         this.graphics = svg;
         this.childNodes = new Bexp.Util.List();
         this.linkedListNode = null;

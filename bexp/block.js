@@ -20,7 +20,7 @@
 var Bexp = Bexp || {};
 
 Bexp.Block = (function(window, document) {
-    var Editor = function(app, elem) {
+    const Editor = function(app, elem) {
         this.app = app;
         this.editor = this;
         this.BLOCK_HEIGHT = 25;
@@ -69,7 +69,7 @@ Bexp.Block = (function(window, document) {
         return this.scriptLayer.removeChild(block);
     };
 
-    var Palette = function(owner, sidebar) {
+    const Palette = function(owner, sidebar) {
         this.sprite =
             new Bexp.Svg.Sprite(document.createElementNS(Bexp.Svg.NS, 'svg'));
         this.editor = owner;
@@ -85,10 +85,10 @@ Bexp.Block = (function(window, document) {
         this.sprite.graphics.appendChild(this.rect);
         this.categories = {};
 
-        var ul = document.createElement('ul');
+        let ul = document.createElement('ul');
         ul.setAttribute('id', 'categories');
-        for(const catId of this.editor.grammar.orderedNonterminals) {
-            var category = new Bexp.Block.Category(ul, this, catId);
+        for(let catId of this.editor.grammar.orderedNonterminals) {
+            const category = new Bexp.Block.Category(ul, this, catId);
             this.categories[catId] = category;
         }
         this.sidebar.appendChild(ul);
@@ -109,10 +109,10 @@ Bexp.Block = (function(window, document) {
         this.selectedCategory = category;
     };
 
-    var Category = function(ul, palette, catId) {
+    const Category = function(ul, palette, catId) {
         this.div = document.createElement('div');
         this.palette = palette;
-        var editor = palette.editor;
+        const editor = palette.editor;
         this.nonterminal = editor.grammar.nonterminals[catId];
         this.div.textContent = this.nonterminal.name;
         this.div.setAttribute('class', 'category');
@@ -122,9 +122,9 @@ Bexp.Block = (function(window, document) {
 
         this.sprite =
             new Bexp.Svg.Sprite(document.createElementNS(Bexp.Svg.NS, 'g'));
-        var y = 10;
+        let y = 10;
         for(const blockId of this.nonterminal.orderedProductions) {
-            var template =
+            let template =
                 new Bexp.Block.Template(editor, catId, blockId, [], -1);
             template.transform.translation.x = 10;
             template.transform.translation.y = y;
@@ -143,7 +143,7 @@ Bexp.Block = (function(window, document) {
         }
     };
 
-    var Hole = function(owner, index) {
+    const Hole = function(owner, index) {
         Bexp.Svg.Sprite.call(
             this, document.createElementNS(Bexp.Svg.NS, 'g')
         );
@@ -183,7 +183,7 @@ Bexp.Block = (function(window, document) {
         this.rect.setAttributeNS(null, 'fill', '#ccb71e');
     };
 
-    var Input = function(type, editor) {
+    const Input = function(type, editor) {
         Bexp.Svg.Sprite.call(this, document.createElementNS(Bexp.Svg.NS, 'g'));
         this.foreign = document.createElementNS(Bexp.Svg.NS, 'foreignObject');
         this.foreign.setAttribute('height', editor.BLOCK_HEIGHT);
@@ -227,7 +227,7 @@ Bexp.Block = (function(window, document) {
         event.stopPropagation();
     };
 
-    var Block = function(editor, nonterminal, production, args, index) {
+    const Block = function(editor, nonterminal, production, args, index) {
         Bexp.Svg.Sprite.call(this, document.createElementNS(Bexp.Svg.NS, 'g'));
         this.editor = editor;
         this.nonterminal = nonterminal;
@@ -249,11 +249,11 @@ Bexp.Block = (function(window, document) {
         this.newlines = 0;
 
         (function() {
-            var argIdx = 0;
+            let argIdx = 0;
             for(var i = 0; i < this.symbols.length; ++i) {
                 switch(this.symbols[i].type) {
                 case 'token':
-                    var text = new Bexp.Svg.Text(this.symbols[i].text);
+                    const text = new Bexp.Svg.Text(this.symbols[i].text);
                     text.setFill('white');
                     this.appendChild(text);
                     break;
@@ -300,14 +300,14 @@ Bexp.Block = (function(window, document) {
         return (this.newlines + 1) * this.editor.BLOCK_HEIGHT;
     };
     Block.prototype.updateSVG = function() {
-        var rowWidth = 0;
-        var largestWidth = 0;
-        var nonterminalIdx = 0;
-        var oldWidth = this.width();
-        var oldHeight = this.height();
+        let rowWidth = 0;
+        let largestWidth = 0;
+        let nonterminalIdx = 0;
+        let oldWidth = this.width();
+        let oldHeight = this.height();
         this.newlines = 0;
-        var iter = this.childNodes[Symbol.iterator]();
-        for(var i = 0; i < this.symbols.length; ++i) {
+        let iter = this.childNodes[Symbol.iterator]();
+        for(let i = 0; i < this.symbols.length; ++i) {
             // This if statement is put first and has a continue because
             // newline items in the grammar don't correspond with any graphics
             // widget / object / sprite, so next should not be called on iter!
@@ -325,8 +325,8 @@ Bexp.Block = (function(window, document) {
                 rowWidth += this.editor.TAB_WIDTH;
                 continue;
             }
-            var child = iter.next().value;
-            var offset = this.newlines * this.editor.BLOCK_HEIGHT;
+            const child = iter.next().value;
+            const offset = this.newlines * this.editor.BLOCK_HEIGHT;
             if(this.symbols[i].type === 'token') {
                 rowWidth += this.editor.SPACING;
                 child.transform.translation = {x: rowWidth, y: offset + 17};
@@ -369,7 +369,7 @@ Bexp.Block = (function(window, document) {
 
     Block.prototype.handleEvent = function(event) {};
 
-    var Expr = function(editor, nonterminal, production, args, index) {
+    const Expr = function(editor, nonterminal, production, args, index) {
         Block.call(this, editor, nonterminal, production, args, index);
     };
     // Expr extends Block
@@ -379,7 +379,7 @@ Bexp.Block = (function(window, document) {
         event.stopPropagation();
         document.addEventListener('mousemove', this);
         document.addEventListener('mouseup', this);
-        var layer = this.parentNode;
+        let layer = this.parentNode;
         // A sprite's coordinates are relative to its parent's.
         // We need to make it relative to the scripting area.
         while(layer !== this.editor.sprite) {
@@ -390,7 +390,7 @@ Bexp.Block = (function(window, document) {
         var oldParent = this.parentNode;
         if(this.parentNode === this.editor.scriptLayer) {
             this.parentNode.removeChild(this);
-        } else if (this.parentNode instanceof Block) {
+        } else if(this.parentNode instanceof Block) {
             this.parentNode.clearArg(this);
         }
         this.editor.dragLayer.appendChild(this);
@@ -401,7 +401,7 @@ Bexp.Block = (function(window, document) {
 
         // Thanks NickyNouse on Scratch for the cache solution
         // https://scratch.mit.edu/discuss/topic/283813/?page=2#post-2928778
-        for(var hole of this.editor.holes) {
+        for(let hole of this.editor.holes) {
             hole.cachedDragData = {
                 pos: {
                     x: hole.transform.translation.x,
@@ -409,7 +409,7 @@ Bexp.Block = (function(window, document) {
                 },
                 isDragged: false
             };
-            var node = hole.owner;
+            let node = hole.owner;
             while(node instanceof Block) {
                 if(node === this) {
                     hole.cachedDragData.isDragged = true;
@@ -424,13 +424,13 @@ Bexp.Block = (function(window, document) {
 
     Expr.prototype.mousemoveEvent = function(event) {
         this.updateDrag(event.pageX, event.pageY);
-        var oldHole = this.dropTarget;
-        var shortestDist = 20;
+        let oldHole = this.dropTarget;
+        let shortestDist = 20;
         this.dropTarget = null;
         for(hole of this.editor.holes) {
             if(!hole.cachedDragData.isDragged) {
-                var dist = Bexp.Util.distance(hole.cachedDragData.pos,
-                                              this.transform.translation);
+                const dist = Bexp.Util.distance(hole.cachedDragData.pos,
+                                                this.transform.translation);
                 if(dist < shortestDist) {
                     shortestDist = dist;
                     this.dropTarget = hole;
@@ -488,7 +488,7 @@ Bexp.Block = (function(window, document) {
         }
     };
 
-    var Template = function(editor, nonterminal, production, args, index) {
+    const Template = function(editor, nonterminal, production, args, index) {
         Block.call(this, editor, nonterminal, production, args, index);
     };
     // Template extends Block
@@ -497,7 +497,7 @@ Bexp.Block = (function(window, document) {
     Template.prototype.handleEvent = function(event) {
         switch(event.type) {
         case 'mousedown':
-            var block = this.editor.newBlock(this.nonterminal, this.production);
+            let block = this.editor.newBlock(this.nonterminal, this.production);
             this.editor.addScript(block, this.transform.translation.x,
                                   this.transform.translation.y);
             block.handleEvent(event);

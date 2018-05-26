@@ -28,19 +28,19 @@
 var Bexp = Bexp || {};
 
 Bexp.Grammar = (function(window, document) {
-    var Grammar = function() {
+    const Grammar = function() {
         this.nonterminals = {};
         this.orderedNonterminals = [];
     };
 
     Grammar.prototype.addNonterminal = function(id, name) {
-        var nonterminal = new Bexp.Grammar.Nonterminal(id, name);
+        let nonterminal = new Bexp.Grammar.Nonterminal(id, name);
         this.nonterminals[id] = nonterminal;
         this.orderedNonterminals.push(id);
         return nonterminal;
     };
 
-    var Nonterminal = function(id, name) {
+    const Nonterminal = function(id, name) {
         this.id = id;
         this.name = name;
         this.productions = {};
@@ -48,13 +48,13 @@ Bexp.Grammar = (function(window, document) {
     };
 
     Nonterminal.prototype.addProduction = function(op) {
-        var production = new Bexp.Grammar.Production(this, op, []);
+        const production = new Bexp.Grammar.Production(this, op, []);
         this.productions[op] = production;
         this.orderedProductions.push(op);
         return production;
     };
 
-    var Production = function(nonterminal, op, symbols) {
+    const Production = function(nonterminal, op, symbols) {
         this.nonterminal = nonterminal;
         this.id = op;
         this.symbols = [];
@@ -89,7 +89,7 @@ Bexp.Grammar = (function(window, document) {
         this.symbols.push({type: 'string'});
     };
 
-    var ProductionEditor = function(production) {
+    const ProductionEditor = function(production) {
         this.raw = production;
         this.indentation = 0;
     };
@@ -117,7 +117,7 @@ Bexp.Grammar = (function(window, document) {
     ProductionEditor.prototype.indent = function() {
         ++this.indentation;
         this.raw.addNewline();
-        for(var i = 0; i < this.indentation; ++i) {
+        for(let i = 0; i < this.indentation; ++i) {
             this.raw.addTab();
         }
         return this;
@@ -126,7 +126,7 @@ Bexp.Grammar = (function(window, document) {
     ProductionEditor.prototype.outdent = function() {
         --this.indentation;
         this.raw.addNewline();
-        for(var i = 0; i < this.indentation; ++i) {
+        for(let i = 0; i < this.indentation; ++i) {
             this.raw.addTab();
         }
         return this;

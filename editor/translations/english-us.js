@@ -3,7 +3,7 @@
 var Translations = Translations || {};
 
 (function() {
-var grammar = new Bexp.Grammar.Grammar();
+let grammar = new Bexp.Grammar.Grammar();
 
 grammar.addNonterminal('expr', 'Expression')
     .addProduction('apply').dsl

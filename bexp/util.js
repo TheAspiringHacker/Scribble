@@ -25,13 +25,13 @@ Bexp.Util = (function(window, document) {
     const distance = function(p1, p2) {
         return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
     };
-    var List = function(iterable) {
+    const List = function(iterable) {
         this.front = null;
         this.back = null;
         this.length = 0;
         iterable = iterable || [];
-        for(elem of iterable) {
-            var prevBack = this.back;
+        for(let elem of iterable) {
+            const prevBack = this.back;
             this.back = {prev: this.back, val: elem, next: null};
             if(prevBack !== null) {
                 prevBack.next = this.back;
@@ -42,7 +42,7 @@ Bexp.Util = (function(window, document) {
             ++this.length;
         }
         this[Symbol.iterator] = function* () {
-            var index = this.front;
+            let index = this.front;
             while(index !== null) {
                 yield index.val;
                 index = index.next;
@@ -50,7 +50,7 @@ Bexp.Util = (function(window, document) {
         };
     };
     List.prototype.push = function(elem) {
-        var prevBack = this.back;
+        const prevBack = this.back;
         this.back = {prev: this.back, val: elem, next: null};
         if(prevBack !== null) {
             prevBack.next = this.back;
@@ -69,7 +69,7 @@ Bexp.Util = (function(window, document) {
         --this.length;
     };
     List.prototype.insert = function(elem, node) {
-        var newNode = {prev: node.prev, val: elem, next: node};
+        const newNode = {prev: node.prev, val: elem, next: node};
         if(newNode.prev === null) {
             this.front = newNode;
         } else {
@@ -93,7 +93,7 @@ Bexp.Util = (function(window, document) {
         --this.length;
     };
     List.prototype.forEach = function(f) {
-        for(x of this) {
+        for(let x of this) {
             f(x);
         }
     };
