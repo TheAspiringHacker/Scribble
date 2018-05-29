@@ -1,5 +1,5 @@
-# Scribble
-Scribble is still a work in progress, but it will be a block-based functional
+# Emelle
+Emelle is still a work in progress, but it will be a block-based functional
 (ML-style) programming language.
 
 ## Installing dependencies

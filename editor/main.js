@@ -1,1 +1,1 @@
-var scribble = new Bexp.App(document.getElementById('editor'));
+var emelle = new Bexp.App(document.getElementById('editor'));

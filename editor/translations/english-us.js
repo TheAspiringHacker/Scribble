@@ -1,7 +1,5 @@
 ;'use strict';
 
-var Translations = Translations || {};
-
 (function() {
 let grammar = new Bexp.Grammar.Grammar();
 
@@ -83,5 +81,5 @@ grammar.addNonterminal('pattern', 'Pattern')
         .tok('_')
     ;
 
-scribble.translations['en-us'] = grammar;
+emelle.translations['en-us'] = grammar;
 })();
