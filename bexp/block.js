@@ -248,7 +248,7 @@ Bexp.Block = (function(window, document) {
         this.dropTarget = null;
         this.newlines = 0;
 
-        (function() {
+        (() => {
             let argIdx = 0;
             for(var i = 0; i < this.symbols.length; ++i) {
                 switch(this.symbols[i].type) {
@@ -287,7 +287,7 @@ Bexp.Block = (function(window, document) {
                     console.error(this.symbols[i].type + ' not a case');
                 }
             }
-        }).call(this);
+        })(this);
         this.graphics.addEventListener('mousedown', this);
     };
 
