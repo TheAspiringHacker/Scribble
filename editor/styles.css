@@ -11,14 +11,15 @@ body {
 
 header {
     background-color: #20abff;
-    display: inline-flex;
+    display: block;
     flex: initial;
     width: 100%;
     height: 50px;
 }
 
 #menu {
-    display: inline-flex;
+    box-sizing: border-box;
+    display: inline;
     width: 150px;
     height: 100%;
     margin: 0 50px;
@@ -29,7 +30,8 @@ header {
     color: white;
     display: inline;
     height: 100%;
-    padding: 0 20px;
+    margin: 0;
+    padding: 100% 15px;
     line-height: 50px;
 }
 
@@ -42,7 +44,7 @@ header {
     border-radius: 25px;
     color: white;
     height: 80%;
-    margin: 10%;
+    margin: 0 50px;
     padding: 0 18px;
     line-height: 40px;
 }
