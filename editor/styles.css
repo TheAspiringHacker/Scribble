@@ -19,7 +19,8 @@ header {
 
 #menu {
     box-sizing: border-box;
-    display: inline;
+    display: flex;
+    float: left;
     width: 150px;
     height: 100%;
     margin: 0 50px;
@@ -31,7 +32,7 @@ header {
     display: inline;
     height: 100%;
     margin: 0;
-    padding: 100% 15px;
+    padding: 0 15px;
     line-height: 50px;
 }
 
@@ -44,9 +45,9 @@ header {
     border-radius: 25px;
     color: white;
     height: 80%;
+    line-height: 40px;
     margin: 0 50px;
     padding: 0 18px;
-    line-height: 40px;
 }
 
 #run:hover {
