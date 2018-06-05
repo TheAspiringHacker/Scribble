@@ -287,7 +287,7 @@ Bexp.Block = (function(window, document) {
                     console.error(this.symbols[i].type + ' not a case');
                 }
             }
-        })(this);
+        })();
         this.graphics.addEventListener('mousedown', this);
     };
 
